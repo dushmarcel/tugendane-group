@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Tugendane Rides</string>
+    <string name="title_activity_main">Tugendane Rides</string>
+    <string name="package_name">com.tugendanegroup.rides</string>
+    <string name="custom_url_scheme">com.tugendanegroup.rides</string>
+</resources>

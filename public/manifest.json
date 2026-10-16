@@ -1,0 +1,36 @@
+{
+  "name": "Tugendane Group - Tugendane Rides",
+  "short_name": "Tugendane",
+  "description": "Tugendane Group - Rwanda's marketplace for empty car seats. Connect with verified private drivers, share fuel costs, and travel together across Rwanda.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b5ed7",
+  "theme_color": "#0b5ed7",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["travel", "transportation", "social"],
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/tujyane-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Find a Ride",
+      "short_name": "Find Ride",
+      "description": "Search for empty car seats across Rwanda",
+      "url": "/",
+      "icons": [{ "src": "/favicon.png", "sizes": "192x192" }]
+    }
+  ]
+}

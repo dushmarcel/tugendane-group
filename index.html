@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/tujyane-logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#0b5ed7" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Tugendane" />
+    <meta name="description" content="Tugendane Group - Rwanda's marketplace for empty car seats. Connect with verified drivers, share fuel costs, and travel together. Ntugende wenyine." />
+    <meta name="keywords" content="carpooling, Rwanda, ride sharing, Tugendane, Tugendane Group, Tugendane Rides, Kigali, Huye, Musanze, Rubavu, empty seats, fuel sharing" />
+    <meta property="og:title" content="Tugendane Group - Tugendane Rides Rwanda" />
+    <meta property="og:description" content="Find verified private drivers traveling your way. Share fuel costs, travel faster, arrive comfortably. Tugendane - Let's move forward together." />
+    <meta property="og:image" content="/tujyane-logo.png" />
+    <meta property="og:type" content="website" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>Tugendane Rides - Tugendane Group Rwanda</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // Register Service Worker for PWA (installable mobile app)
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((reg) => console.log('Tugendane SW registered:', reg.scope))
+            .catch((err) => console.warn('SW registration failed:', err));
+        });
+      }
+    </script>
+  </body>
+</html>

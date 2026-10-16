@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Local environment secrets — NEVER commit these
+.env
+.env.local
+.env.production
+*.jks
+*.keystore
+
+# Android build outputs (generated, not source)
+android/app/build/
+android/.gradle/
+android/build/
+android/local.properties
+
+# macOS / Windows
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Firebase emulator
+.firebase/
+firebase-debug.log
+firestore-debug.log
+
+# Logs
+*.log
+npm-debug.log*

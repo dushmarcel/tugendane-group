@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users Profile Collection
+    // Read and write are strictly restricted to the account owner (prevents scraping National IDs & phone numbers)
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Rides Collection (Marketplace)
+    // Any visitor can browse rides; creating requires authenticated driver matching driverId; delete is driver-only
+    match /rides/{rideId} {
+      allow read: if true;
+      allow create: if request.auth != null && request.resource.data.driverId == request.auth.uid;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null && resource.data.driverId == request.auth.uid;
+    }
+
+    // Bookings Collection
+    // Strictly private: only the passenger who booked or the driver receiving the booking can read or update
+    // Ownership fields (passengerId, driverId, rideId, totalPrice) cannot be modified after creation
+    match /bookings/{bookingId} {
+      allow read: if request.auth != null && (
+        resource.data.passengerId == request.auth.uid || 
+        resource.data.driverId == request.auth.uid
+      );
+      allow create: if request.auth != null && request.resource.data.passengerId == request.auth.uid;
+      allow update: if request.auth != null && (
+        resource.data.passengerId == request.auth.uid || 
+        resource.data.driverId == request.auth.uid
+      ) && (
+        request.resource.data.passengerId == resource.data.passengerId &&
+        request.resource.data.driverId == resource.data.driverId &&
+        request.resource.data.rideId == resource.data.rideId &&
+        request.resource.data.totalPrice == resource.data.totalPrice
+      );
+    }
+  }
+}

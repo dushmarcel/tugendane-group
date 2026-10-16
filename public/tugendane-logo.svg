@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b5ed7" />
+      <stop offset="55%" stop-color="#0d9488" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+
+    <!-- Metallic Road Gradient -->
+    <linearGradient id="roadGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#f8fafc" stop-opacity="0.9" />
+    </linearGradient>
+
+    <!-- Accent Gold Gradient -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity="0.25" />
+    </filter>
+  </defs>
+
+  <!-- Rounded App Icon Background -->
+  <rect width="500" height="500" rx="110" fill="url(#bgGrad)" />
+
+  <!-- Outer Ring (Unity & Movement) -->
+  <circle cx="250" cy="230" r="160" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="8" stroke-dasharray="14 10" />
+
+  <!-- Forward-Moving Carpooling Swirl / Twin Arrows -->
+  <g filter="url(#shadow)">
+    <!-- Main Sweeping 'T' Road / Carpooling Loop -->
+    <path d="M140 210 C140 140, 360 140, 360 210 C360 270, 260 290, 250 340 L250 360" fill="none" stroke="url(#roadGrad)" stroke-width="34" stroke-linecap="round" />
+    
+    <!-- Central Highway Divider Dashes -->
+    <path d="M165 200 C175 160, 325 160, 335 200 C335 235, 275 260, 250 310" fill="none" stroke="#0d9488" stroke-width="6" stroke-dasharray="12 10" stroke-linecap="round" />
+
+    <!-- Stylized Modern Car Silhouette in motion -->
+    <g transform="translate(195, 160)">
+      <!-- Car Body -->
+      <path d="M10 38 Q25 18 55 14 L75 14 Q95 24 100 38 L105 45 Q105 52 98 52 L12 52 Q5 52 5 45 Z" fill="url(#goldGrad)" />
+      <!-- Car Windows -->
+      <path d="M30 34 L52 20 L52 34 Z" fill="#0f172a" opacity="0.8" />
+      <path d="M57 20 L76 20 L86 34 L57 34 Z" fill="#0f172a" opacity="0.8" />
+      <!-- Wheels -->
+      <circle cx="28" cy="52" r="11" fill="#1e293b" stroke="#ffffff" stroke-width="3" />
+      <circle cx="82" cy="52" r="11" fill="#1e293b" stroke="#ffffff" stroke-width="3" />
+    </g>
+
+    <!-- Forward Dynamic Arrow Head -->
+    <polygon points="250,380 230,340 270,340" fill="url(#goldGrad)" />
+  </g>
+
+  <!-- Typography: TUGENDANE GROUP -->
+  <text x="250" y="425" text-anchor="middle" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-weight="900" font-size="34" fill="#ffffff" letter-spacing="3.5">
+    TUGENDANE
+  </text>
+  <text x="250" y="458" text-anchor="middle" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-weight="700" font-size="16" fill="#facc15" letter-spacing="4">
+    GROUP • RIDES
+  </text>
+</svg>
