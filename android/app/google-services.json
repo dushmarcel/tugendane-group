@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "166007770565",
+    "project_id": "tugendane-rwanda",
+    "storage_bucket": "tugendane-rwanda.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:166007770565:android:5193df6cd69bcee9f0cfac",
+        "android_client_info": {
+          "package_name": "com.tugendanegroup.rides"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyByEljrRtR-EAfzV3XVtw2Xcc_h-xGu7dY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

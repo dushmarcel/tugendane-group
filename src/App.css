@@ -37,14 +37,24 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
-body {
+html, body {
   font-family: var(--font-main);
   background-color: #f1f5f9;
   color: var(--dark);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -webkit-touch-callout: none;
+  overscroll-behavior-y: none;
+  user-select: none;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+input, textarea, select {
+  user-select: text;
 }
 
 /* ==========================================================================

@@ -3,12 +3,13 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyApsYu6xOZ9-aJtiiMMenUKEyO27HSSyxE",
-  authDomain: "tujyane-rwanda.firebaseapp.com",
-  projectId: "tujyane-rwanda",
-  storageBucket: "tujyane-rwanda.firebasestorage.app",
-  messagingSenderId: "193709444377",
-  appId: "1:193709444377:web:879d15fbdffd3dffb28988",
+  apiKey: "AIzaSyAB9-GyUzTI3rH4N4HKeUfnTj-VwGKxzCs",
+  authDomain: "tugendane-rwanda.firebaseapp.com",
+  projectId: "tugendane-rwanda",
+  storageBucket: "tugendane-rwanda.firebasestorage.app",
+  messagingSenderId: "166007770565",
+  appId: "1:166007770565:web:e9812ecb7cd2b55df0cfac",
+  measurementId: "G-LD0Q4DC2TS"
 };
 
 const app = initializeApp(firebaseConfig);
