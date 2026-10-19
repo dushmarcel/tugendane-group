@@ -31,10 +31,11 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      - name: Prepare Gradlew Permissions
+      - name: Setup Android SDK & Licenses
         run: |
           chmod +x android/gradlew
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" || true
 
       - name: Sync Capacitor Android
         run: npx cap sync android
@@ -42,12 +43,12 @@ jobs:
       - name: Build Android APK (Direct Phone Installation)
         run: |
           cd android
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Build Android App Bundle (Google Play Store AAB)
         run: |
           cd android
-          ./gradlew bundleDebug --no-daemon
+          ./gradlew bundleDebug --no-daemon --stacktrace
 
       - name: Upload Direct Install APK
         uses: actions/upload-artifact@v4
