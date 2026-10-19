@@ -1,10 +1,10 @@
 // Tujyane Service Worker - Enables offline access & PWA install
 const CACHE_NAME = 'tujyane-v1';
 const STATIC_ASSETS = [
-  '/',
-  '/tujyane-logo.png',
-  '/favicon.png',
-  '/manifest.json',
+  './',
+  './tujyane-logo.png',
+  './favicon.png',
+  './manifest.json',
 ];
 
 // Install: cache core assets
