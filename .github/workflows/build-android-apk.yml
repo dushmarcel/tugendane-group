@@ -15,7 +15,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Install Dependencies
@@ -31,8 +31,9 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      - name: Accept Android SDK Licenses
+      - name: Prepare Gradlew Permissions
         run: |
+          chmod +x android/gradlew
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       - name: Sync Capacitor Android
@@ -41,13 +42,12 @@ jobs:
       - name: Build Android APK (Direct Phone Installation)
         run: |
           cd android
-          chmod +x ./gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --no-daemon
 
       - name: Build Android App Bundle (Google Play Store AAB)
         run: |
           cd android
-          ./gradlew bundleDebug
+          ./gradlew bundleDebug --no-daemon
 
       - name: Upload Direct Install APK
         uses: actions/upload-artifact@v4
