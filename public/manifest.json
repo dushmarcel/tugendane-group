@@ -12,13 +12,13 @@
   "categories": ["travel", "transportation", "social"],
   "icons": [
     {
-      "src": "/favicon.png",
+      "src": "./favicon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/tujyane-logo.png",
+      "src": "./tugendane-logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"

@@ -689,7 +689,7 @@ export default function App() {
         <div className="welcome-card">
           <div className="welcome-logo-container">
             <div className="welcome-logo-badge">
-              <img src="/tugendane-logo.svg" alt="Tugendane Group Logo" />
+              <img src="./tugendane-logo.png" alt="Tugendane Group Logo" />
             </div>
             <div className="brand-group-pill">{t.groupName}</div>
             <div className="brand-title">{t.brandName}</div>
@@ -760,7 +760,7 @@ export default function App() {
 
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "18px" }}>
             <div style={{ width: "42px", height: "42px", borderRadius: "10px", overflow: "hidden", border: "1px solid var(--border)" }}>
-              <img src="/tugendane-logo.svg" alt="logo" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+              <img src="./tugendane-logo.png" alt="logo" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
             </div>
             <div>
               <div style={{ fontSize: "11px", fontWeight: "800", color: "var(--secondary)", letterSpacing: "0.5px" }}>{t.groupName}</div>
@@ -911,7 +911,7 @@ export default function App() {
         <div className="header-container">
           <div className="header-brand" onClick={() => setCurrentTab("home")}>
             <div className="header-logo">
-              <img src="/tugendane-logo.svg" alt="Tugendane Group Logo" />
+              <img src="./tugendane-logo.png" alt="Tugendane Group Logo" />
             </div>
             <div className="header-title-box">
               <div className="header-group-tag">TUGENDANE GROUP</div>
