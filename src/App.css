@@ -987,6 +987,7 @@ textarea:focus {
   align-items: center;
   justify-content: center;
   padding: 20px;
+  overscroll-behavior: contain;
 }
 
 .modal-window {
@@ -2562,3 +2563,5 @@ textarea:focus {
 .service-fee-proof-preview { width: min(100%, 260px); max-height: 220px; justify-self: start; object-fit: contain; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
 .admin-proof-link { display: inline-flex; align-items: center; gap: 9px; width: fit-content; color: var(--primary-dark); font-size: 12px; font-weight: 750; text-decoration: underline; }
 .admin-proof-thumbnail { width: 54px; height: 54px; object-fit: cover; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
+.service-fee-policy { margin: 12px 0 8px !important; padding: 12px; border: 1px solid #b7e4c7; border-radius: 12px; background: #f0fdf4; color: #14532d !important; font-size: 13px; line-height: 1.5; }
+.admin-history-modal { max-height: min(86dvh, 760px); overscroll-behavior: contain; }

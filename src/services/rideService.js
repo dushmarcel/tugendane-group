@@ -17,6 +17,15 @@ import { calculateServiceFee } from "./rwandaRoutes";
 const STORAGE_KEY_RIDES = "tugendane_rides_v1";
 const STORAGE_KEY_BOOKINGS = "tugendane_bookings_v1";
 
+function uniqueBookings(bookings) {
+  const unique = new Map();
+  bookings.forEach((booking, index) => {
+    const key = booking.id || booking.firestoreId || `unkeyed-${index}`;
+    unique.set(String(key), booking);
+  });
+  return [...unique.values()];
+}
+
 // Old demo entries are removed from cached marketplace data.
 const DEMO_RIDE_IDS = new Set([
   "ride-huye-kigali-1", "ride-kigali-huye-2", "ride-kigali-musanze-3",
@@ -49,7 +58,8 @@ function saveLocalRides(rides) {
 export function getLocalBookings() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_BOOKINGS);
-    return raw ? JSON.parse(raw) : [];
+    const parsed = raw ? JSON.parse(raw) : [];
+    return uniqueBookings(Array.isArray(parsed) ? parsed : []);
   } catch {
     return [];
   }
@@ -57,7 +67,7 @@ export function getLocalBookings() {
 
 export function saveLocalBookings(bookings) {
   try {
-    localStorage.setItem(STORAGE_KEY_BOOKINGS, JSON.stringify(bookings));
+    localStorage.setItem(STORAGE_KEY_BOOKINGS, JSON.stringify(uniqueBookings(bookings)));
   } catch (err) {
     console.warn("Could not save bookings to localStorage:", err);
   }
@@ -304,13 +314,17 @@ export async function getUserBookings(userId) {
     const q2 = query(bookingsRef, where("driverId", "==", userId));
     const snap2 = await getDocs(q2);
 
-    const remote = [];
-    snap1.forEach((d) => remote.push({ firestoreId: d.id, ...d.data() }));
-    snap2.forEach((d) => remote.push({ firestoreId: d.id, ...d.data() }));
+    const remote = uniqueBookings([
+      ...snap1.docs.map((d) => ({ firestoreId: d.id, ...d.data() })),
+      ...snap2.docs.map((d) => ({ firestoreId: d.id, ...d.data() })),
+    ]);
 
     if (remote.length > 0) {
-      const ids = new Set(remote.map((b) => b.id || b.firestoreId));
-      const combined = [...remote, ...local.filter((b) => !ids.has(b.id))];
+      const ids = new Set(remote.map((booking) => String(booking.id || booking.firestoreId)));
+      const combined = uniqueBookings([
+        ...local.filter((booking) => !ids.has(String(booking.id || booking.firestoreId))),
+        ...remote,
+      ]);
       saveLocalBookings(combined);
       return combined;
     }

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { ADMIN_EMAIL } from "../locales/texts";
 import { calculateServiceFee } from "../services/rwandaRoutes";
 
@@ -18,6 +19,18 @@ export default function AdminDashboard({
   closeFeedbackItem,
   handleLogout,
 }) {
+  useEffect(() => {
+    if (!adminSelectedUser) return undefined;
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousDocumentOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousDocumentOverflow;
+    };
+  }, [adminSelectedUser]);
+
   return (
     <div className="admin-console">
       <header className="admin-console-header">

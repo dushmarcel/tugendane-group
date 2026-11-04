@@ -84,10 +84,10 @@ function ServiceFeePrompt({ booking, onSubmitServiceFee, error }) {
   return (
     <section className="service-fee-prompt">
       <strong>Pay the Tugendane booking fee to connect</strong>
-      <p>Pay <b>{feeAmount.toLocaleString()} RWF</b> (15% of the ticket price) to Tugendane. The full ticket price is paid to the driver when you meet.</p>
       <button type="button" className="btn btn-primary btn-full service-fee-pay-button" onClick={openMtnPayment}>
-        📱 Open MTN MoMo and pay {feeAmount.toLocaleString()} RWF
+        📱 Pay 15% ({feeAmount.toLocaleString()} RWF) to book ride
       </button>
+      <p className="service-fee-policy">After paying the 15% fee, pay the remaining 85% directly to the driver at the meeting point. If the driver does not show up, contact Tugendane for a refund. If you do not show up, the booking fee is not refunded.</p>
       <small className="service-fee-code-hint">This copies {ussdCode} and opens your phone dialer with the code ready.</small>
       {paymentOpened && <p className="service-fee-copy-confirmation" role="status">If the dialer did not open, use the copied code in your phone app.</p>}
       <form onSubmit={submit} className="service-fee-proof-form">

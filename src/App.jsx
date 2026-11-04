@@ -65,6 +65,15 @@ import "./App.css";
 
 const DEFAULT_DEPARTURE_DATE = new Date(Date.now() + 86400000).toISOString().split("T")[0];
 
+function uniqueBookingRecords(records) {
+  const unique = new Map();
+  records.forEach((booking, index) => {
+    const identity = booking.id || booking.firestoreId || `unkeyed-${index}`;
+    unique.set(String(identity), booking);
+  });
+  return [...unique.values()];
+}
+
 export default function App() {
   // Localization
   const [lang, setLang] = useState("en");
@@ -349,7 +358,8 @@ export default function App() {
       });
       setBookings((current) => {
         const otherSide = current.filter((booking) => booking.driverId === currentUser.uid);
-        return [...snapshot.docs.map((bookingDoc) => ({ firestoreId: bookingDoc.id, ...bookingDoc.data() })), ...otherSide];
+        const passengerSide = snapshot.docs.map((bookingDoc) => ({ firestoreId: bookingDoc.id, ...bookingDoc.data() }));
+        return uniqueBookingRecords([...otherSide, ...passengerSide]);
       });
     }, (error) => console.warn("Passenger booking updates unavailable:", error));
 
@@ -364,7 +374,8 @@ export default function App() {
       driverBookingsInitialized.current = true;
       setBookings((current) => {
         const otherSide = current.filter((booking) => booking.passengerId === currentUser.uid);
-        return [...otherSide, ...snapshot.docs.map((bookingDoc) => ({ firestoreId: bookingDoc.id, ...bookingDoc.data() }))];
+        const driverSide = snapshot.docs.map((bookingDoc) => ({ firestoreId: bookingDoc.id, ...bookingDoc.data() }));
+        return uniqueBookingRecords([...otherSide, ...driverSide]);
       });
     }, (error) => console.warn("Driver booking updates unavailable:", error));
 
@@ -754,7 +765,9 @@ export default function App() {
       setFeeSubmitError("");
       return true;
     } catch (error) {
-      setFeeSubmitError(`Payment reference could not be submitted: ${error.message}`);
+      setFeeSubmitError(error.code === "permission-denied"
+        ? "Firebase denied this payment proof. The latest Firestore rules must be published before it can be reviewed."
+        : `Payment proof could not be submitted: ${error.message}`);
       return false;
     }
   }
