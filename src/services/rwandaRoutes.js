@@ -80,8 +80,8 @@ export const ROUTE_PRICING = {
   "bujumbura (bi)-kigali": 20000,
 };
 
-// Keep the in-app fee at zero until a real payment processor is connected.
-export const PLATFORM_COMMISSION_PERCENT = 0;
+// The service fee is paid manually to Tugendane after driver approval.
+export const PLATFORM_COMMISSION_PERCENT = 10;
 
 export function getSuggestedPrice(from, to) {
   if (!from || !to) return 4000;
@@ -93,7 +93,7 @@ export function calculatePricingBreakdown(seatPrice, seatCount = 1) {
   const priceNum = typeof seatPrice === "number" ? seatPrice : parseInt(String(seatPrice).replace(/[^0-9]/g, ""), 10) || 4500;
   const subtotal = priceNum * seatCount;
   const platformFee = Math.round(subtotal * (PLATFORM_COMMISSION_PERCENT / 100));
-  const driverNetEarnings = subtotal - platformFee;
+  const driverNetEarnings = subtotal;
   const passengerTotal = subtotal + platformFee;
 
   return {

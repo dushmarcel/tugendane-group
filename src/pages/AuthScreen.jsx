@@ -1,3 +1,5 @@
+import ComplianceBanner from "../components/ComplianceBanner";
+
 export default function AuthScreen({
   visibleAuthMode,
   setAuthMode,
@@ -61,6 +63,8 @@ export default function AuthScreen({
             <p style={{ fontSize: "12.5px", color: "var(--dark-muted)" }}>{t.tagline}</p>
           </div>
         </div>
+
+        {visibleAuthMode === "login" && <ComplianceBanner t={t} />}
 
         {authModalReason && (
           <div

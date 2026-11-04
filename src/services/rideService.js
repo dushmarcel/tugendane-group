@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "../firebase";
+import { PLATFORM_COMMISSION_PERCENT } from "./rwandaRoutes";
 
 const STORAGE_KEY_RIDES = "tugendane_rides_v1";
 const STORAGE_KEY_BOOKINGS = "tugendane_bookings_v1";
@@ -232,7 +233,7 @@ export async function bookRide({ rideId, passenger, seatsCount, pickupPoint, not
     if (currentRide.driverId === passenger.uid) throw new Error("You cannot book your own ride.");
     const remaining = currentRide.availableSeats - seatsCount;
     const subtotal = currentRide.price * seatsCount;
-    const platformFee = 0;
+    const platformFee = Math.round(subtotal * (PLATFORM_COMMISSION_PERCENT / 100));
     const bookingData = {
       id: bookingRef.id, rideId: rideRef.id, driverId: currentRide.driverId,
       driverName: currentRide.driverName, driverPhone: currentRide.driverPhone,
@@ -242,10 +243,10 @@ export async function bookRide({ rideId, passenger, seatsCount, pickupPoint, not
       pickupLatitude: currentRide.pickupLatitude ?? null, pickupLongitude: currentRide.pickupLongitude ?? null,
       dropoffLocation: currentRide.dropoffLocation, departureDate: currentRide.departureDate,
       departureTime: currentRide.departureTime, seatsBooked: seatsCount,
-      pricePerSeat: currentRide.price, subtotal, platformFee, totalPrice: subtotal + platformFee,
+      pricePerSeat: currentRide.price, subtotal, platformFee, totalPrice: subtotal,
       vehicle: currentRide.vehicle, plate: currentRide.plate,
       paymentMethod: paymentMethod || "Pay driver directly",
-      paymentStatus: "Not processed in app", status: "Pending", notes: notes || "",
+      paymentStatus: "Ticket payable to driver at meetup", serviceFeeStatus: "unpaid", status: "Pending", notes: notes || "",
       bookedAt: new Date().toISOString(), createdAt: serverTimestamp(),
     };
     transaction.update(rideRef, { availableSeats: remaining, status: remaining === 0 ? "full" : "active", lastBookingId: bookingRef.id });

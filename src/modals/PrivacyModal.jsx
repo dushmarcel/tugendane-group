@@ -5,7 +5,7 @@ export default function PrivacyModal({ isOpen, onClose, lang }) {
 
   return (
     <div className="modal-backdrop">
-      <div className="modal-window" style={{ maxWidth: "600px", maxHeight: "85vh", overflowY: "auto", textAlign: "left" }}>
+      <div className="modal-window privacy-modal-window" style={{ overflowY: "auto", textAlign: "left" }}>
         <button className="modal-close-btn" onClick={onClose} aria-label="Close">
           ✕
         </button>
@@ -21,7 +21,7 @@ export default function PrivacyModal({ isOpen, onClose, lang }) {
           <p><strong>1. Service:</strong> Tugendane Rides helps people find pre-planned shared trips in private vehicles. It is not an on-demand taxi dispatch service.</p>
           <p><strong>2. Information:</strong> The app stores account details you provide, including your name, email, phone number, optional National ID, driver licence and vehicle details, ride listings, booking requests, and trip messages.</p>
           <p><strong>3. Sharing:</strong> Contact and pickup details may be shown to the other person on a booking so you can coordinate the trip. Do not include sensitive personal details in trip notes or chat.</p>
-          <p><strong>4. Payments:</strong> The app does not process or collect payments. Riders and drivers must agree directly on any fuel contribution. Never share a mobile money PIN in chat.</p>
+          <p><strong>4. Payments:</strong> After a driver accepts, riders pay Tugendane a separate 10% service fee using MTN MoMo code 744405 and submit the transaction reference. An administrator checks the reference before driver details and chat are unlocked. The full ticket price is paid to the driver at the meetup. Never share a mobile money PIN in chat.</p>
           <p><strong>5. Safety and location:</strong> Emergency buttons open a phone call to the selected number. WhatsApp sharing sends a message only; it does not notify emergency services or share live location.</p>
           <p><strong>6. Verification:</strong> ID and licence details entered in the app are not automatically verified. A badge must not be treated as proof unless Tugendane has completed a separate review.</p>
           <p><strong>7. Privacy requests:</strong> For access, correction, or deletion requests, email <a href={`mailto:${ADMIN_EMAIL}`}>{ADMIN_EMAIL}</a>. Account and trip records may require review before removal.</p>

@@ -1,3 +1,38 @@
+import { useState } from "react";
+
+function ServiceFeePrompt({ booking, onSubmitServiceFee, error }) {
+  const [reference, setReference] = useState("");
+  const feeAmount = booking.platformFee || Math.round(Number(booking.subtotal || booking.totalPrice || 0) * 0.1);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function submit(event) {
+    event.preventDefault();
+    setSubmitting(true);
+    const submitted = await onSubmitServiceFee(booking, reference);
+    if (submitted) setReference("");
+    setSubmitting(false);
+  }
+
+  if (booking.serviceFeeStatus === "review_pending") {
+    return <div className="service-fee-pending" role="status">Payment reference {booking.serviceFeeReference} is being checked. Driver details and chat unlock after review.</div>;
+  }
+
+  return (
+    <form className="service-fee-prompt" onSubmit={submit}>
+      <strong>Pay the Tugendane service fee to connect</strong>
+      <p>Send <b>{feeAmount.toLocaleString()} RWF</b> (10% of the ticket price) to Tugendane using MTN MoMo code <b>744405</b>. Pay the full ticket price to the driver when you meet.</p>
+      <label className="form-group">
+        <span>MTN transaction reference</span>
+        <input value={reference} onChange={(event) => setReference(event.target.value)} maxLength={80} placeholder="Reference from your payment receipt" required />
+      </label>
+      {error && <p className="feedback-error" role="alert">{error}</p>}
+      <button className="btn btn-primary btn-full" type="submit" disabled={submitting || reference.trim().length < 4}>
+        {submitting ? "Submitting…" : "Submit payment reference"}
+      </button>
+    </form>
+  );
+}
+
 export default function TripsView({
   bookings,
   role,
@@ -6,6 +41,8 @@ export default function TripsView({
   openTripChat,
   lang,
   t,
+  onSubmitServiceFee,
+  feeSubmitError,
 }) {
   return (
     <div>
@@ -85,26 +122,22 @@ export default function TripsView({
                       <div><strong>Passenger: </strong>{booking.passengerName}</div>
                       <div><strong>Seats booked: </strong>{booking.seatsBooked}</div>
                     </>
-                  ) : (
+                  ) : booking.serviceFeeStatus === "verified" ? (
                     <>
                       <div><strong>Driver: </strong> {booking.driverName} ({booking.vehicle})</div>
                       <div><strong>Car Plate: </strong> {booking.plate}</div>
                     </>
+                  ) : (
+                    <div className="driver-info-locked">Driver contact and vehicle details are hidden until the service fee is verified.</div>
                   )}
+                  {(role === "driver" || booking.serviceFeeStatus === "verified") && <div><strong>Pickup: </strong> {booking.pickupLocation}</div>}
+                  <div><strong>Seats Booked: </strong> {booking.seatsBooked}</div>
                   <div>
-                    <strong>Pickup: </strong> {booking.pickupLocation}
+                    <strong>Ticket to driver at meetup: </strong> {booking.subtotal?.toLocaleString() ?? booking.totalPrice?.toLocaleString()} RWF
                   </div>
-                  <div>
-                    <strong>Seats Booked: </strong> {booking.seatsBooked}
-                  </div>
-                  <div>
-                    <strong>Total Contribution: </strong> {booking.totalPrice?.toLocaleString()} RWF
-                  </div>
-                  <div>
-                    <strong>Payment: </strong> {booking.paymentMethod}
-                  </div>
+                  {role === "driver" && <div><strong>Payment: </strong> {booking.paymentMethod}</div>}
                 </div>
-                {Number.isFinite(booking.pickupLatitude) && Number.isFinite(booking.pickupLongitude) && (
+                {(role === "driver" || booking.serviceFeeStatus === "verified") && Number.isFinite(booking.pickupLatitude) && Number.isFinite(booking.pickupLongitude) && (
                   <a
                     className="btn btn-sm btn-secondary"
                     style={{ marginTop: 12 }}
@@ -116,6 +149,17 @@ export default function TripsView({
                   </a>
                 )}
               </div>
+
+              {role !== "driver" && booking.status === "Confirmed" && booking.serviceFeeStatus !== "verified" && (
+                booking.serviceFeeStatus === "rejected" ? (
+                  <>
+                    <div className="service-fee-pending" role="alert">The transaction reference could not be verified. Check it against your receipt and submit again.</div>
+                    <ServiceFeePrompt booking={{ ...booking, serviceFeeStatus: "unpaid" }} onSubmitServiceFee={onSubmitServiceFee} error={feeSubmitError} />
+                  </>
+                ) : (
+                  <ServiceFeePrompt booking={booking} onSubmitServiceFee={onSubmitServiceFee} error={feeSubmitError} />
+                )
+              )}
 
               <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                 {role !== "driver" && <a
@@ -135,7 +179,7 @@ export default function TripsView({
                   📤 {t.shareTripBtn}
                 </a>}
 
-                {role !== "driver" && booking.driverPhone && (
+                {role !== "driver" && booking.serviceFeeStatus === "verified" && booking.driverPhone && (
                   <a
                     href={`https://wa.me/${(booking.driverPhone || "").replace(/[^0-9]/g, "")}`}
                     target="_blank"
@@ -155,7 +199,7 @@ export default function TripsView({
                     💬 WhatsApp Passenger
                   </a>
                 )}
-                {booking.status === "Confirmed" && (
+                {booking.status === "Confirmed" && booking.serviceFeeStatus === "verified" && (
                   <button
                     type="button"
                     className="btn btn-sm btn-primary"
@@ -165,7 +209,7 @@ export default function TripsView({
                   </button>
                 )}
 
-                {role !== "driver" && booking.driverPhone && (
+                {role !== "driver" && booking.serviceFeeStatus === "verified" && booking.driverPhone && (
                   <a href={`tel:${booking.driverPhone}`} className="btn btn-sm btn-call">
                     📞 Call Driver
                   </a>

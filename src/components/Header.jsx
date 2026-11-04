@@ -75,7 +75,7 @@ export default function Header({
         <div className="menu-overlay" onClick={() => setShowMenu(false)}>
           <section className="app-menu" role="dialog" aria-label="App menu" onClick={(e) => e.stopPropagation()}>
             <div className="app-menu-heading">
-              <span>{userProfile?.fullName || currentUser?.email}</span>
+              <span>{userProfile?.userName?.trim() || userProfile?.fullName?.trim().split(/\s+/).filter(Boolean).at(-1) || currentUser?.email}</span>
               <button type="button" aria-label="Close menu" onClick={() => setShowMenu(false)}>
                 ×
               </button>
@@ -88,6 +88,15 @@ export default function Header({
               }}
             >
               👤 {t.profile}
+            </button>
+            <button
+              className="app-menu-item"
+              onClick={() => {
+                setCurrentTab("feedback");
+                setShowMenu(false);
+              }}
+            >
+              ⭐ {lang === "en" ? "Feedback & Ratings" : "Ibitekerezo n'amanota"}
             </button>
             <button className="app-menu-item" onClick={handleAccountModeChange}>
               {role === "passenger" ? "🚗 Log out to switch to Driver" : "🧳 Log out to switch to Passenger"}

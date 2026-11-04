@@ -32,9 +32,9 @@ export default function DriverDashboard({
 
         <div className="driver-stat-card">
           <div className="stat-num">
-            {(bookings.reduce((sum, b) => sum + (b.subtotal || 0), 0) * 0.95).toLocaleString()} RWF
+            {bookings.reduce((sum, b) => sum + (b.subtotal || 0), 0).toLocaleString()} RWF
           </div>
-          <div className="stat-desc">{t.driverEarnings} (Net Fuel Recovery)</div>
+          <div className="stat-desc">{t.driverEarnings} (Ticket total)</div>
         </div>
       </div>
 
@@ -350,10 +350,8 @@ export default function DriverDashboard({
               color: "var(--dark-muted)",
             }}
           >
-            💰 <strong>Earnings Transparency:</strong> If you take 3 passengers at{" "}
-            {driverPostForm.price.toLocaleString()} RWF ={" "}
-            {(driverPostForm.price * 3).toLocaleString()} RWF total. You receive{" "}
-            {Math.round(driverPostForm.price * 3 * 0.95).toLocaleString()} RWF for fuel. Tugendane platform fee is only 5% ({Math.round(driverPostForm.price * 3 * 0.05).toLocaleString()} RWF).
+            💰 <strong>Earnings:</strong> The ticket total for 3 seats at {driverPostForm.price.toLocaleString()} RWF is{" "}
+            {(driverPostForm.price * 3).toLocaleString()} RWF, paid to you by passengers when you meet. Passengers pay Tugendane a separate 10% service fee after you accept.
           </div>
 
           <button type="submit" className="btn btn-primary btn-full">
@@ -440,7 +438,7 @@ export default function DriverDashboard({
                     ✓ {t.accept}
                   </button>
                 )}
-                {booking.status === "Confirmed" && (
+                {booking.status === "Confirmed" && booking.serviceFeeStatus === "verified" && (
                   <button
                     type="button"
                     className="btn btn-sm btn-primary"

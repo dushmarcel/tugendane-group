@@ -9,8 +9,12 @@ export default function AdminDashboard({
   adminUserHistory,
   setAdminUserHistory,
   adminHistoryLoading,
+  adminFeeBookings,
+  adminFeedbackItems,
   toggleAdminUserActive,
   openAdminUserHistory,
+  reviewServiceFee,
+  closeFeedbackItem,
   handleLogout,
 }) {
   return (
@@ -47,6 +51,59 @@ export default function AdminDashboard({
             </p>
           </div>
         )}
+
+        <section className="admin-table-card">
+          <div className="admin-section-heading">
+            <div>
+              <h2>MTN service fee checks</h2>
+              <p>Check the transaction reference in MTN records before confirming payment.</p>
+            </div>
+            <div className="admin-total-pill">{adminFeeBookings.length} waiting</div>
+          </div>
+          {adminFeeBookings.length === 0 ? (
+            <div className="admin-empty">No service fee references are waiting for review.</div>
+          ) : (
+            <div className="admin-review-list">
+              {adminFeeBookings.map((booking) => (
+                <article className="admin-review-row" key={booking.firestoreId}>
+                  <div>
+                    <strong>{booking.passengerName || "Passenger"} · {booking.from} → {booking.to}</strong>
+                    <span>{(booking.platformFee || Math.round(Number(booking.subtotal || 0) * .1)).toLocaleString()} RWF · MTN ref: <b>{booking.serviceFeeReference}</b></span>
+                  </div>
+                  <div className="admin-review-actions">
+                    <button type="button" className="btn btn-primary btn-sm" onClick={() => reviewServiceFee(booking, true)}>Verify payment</button>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => reviewServiceFee(booking, false)}>Reject reference</button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="admin-table-card">
+          <div className="admin-section-heading">
+            <div>
+              <h2>Open feedback reports</h2>
+              <p>Issues submitted by signed-in members.</p>
+            </div>
+            <div className="admin-total-pill">{adminFeedbackItems.length} open</div>
+          </div>
+          {adminFeedbackItems.length === 0 ? (
+            <div className="admin-empty">No open feedback reports.</div>
+          ) : (
+            <div className="admin-review-list">
+              {adminFeedbackItems.map((item) => (
+                <article className="admin-review-row" key={item.id}>
+                  <div>
+                    <strong>{item.category} · {item.senderName}</strong>
+                    <span>{item.message}</span>
+                  </div>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => closeFeedbackItem(item.id)}>Mark resolved</button>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
 
         <section className="admin-table-card">
           <div className="admin-section-heading">

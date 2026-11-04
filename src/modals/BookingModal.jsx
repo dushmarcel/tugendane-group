@@ -105,7 +105,7 @@ export default function BookingModal({
               </div>
               <div className="breakdown-row">
                 <span>{t.platformFee}</span>
-                <span>0 RWF</span>
+                <span>{pricing.platformFee.toLocaleString()} RWF</span>
               </div>
               <div className="breakdown-row total-row">
                 <span>{t.totalPayable}</span>
@@ -116,6 +116,10 @@ export default function BookingModal({
                 <span>{pricing.subtotal.toLocaleString()} RWF</span>
               </div>
             </div>
+
+            <p className="booking-payment-note">
+              The 10% Tugendane service fee is due after the driver accepts. Pay it to MTN MoMo code <strong>744405</strong>; driver details and chat open after an admin verifies your transaction reference. Pay the full ticket price to the driver when you meet.
+            </p>
 
             <button className="btn btn-primary btn-full" onClick={handleConfirmBooking}>
               {t.confirmBookingBtn}

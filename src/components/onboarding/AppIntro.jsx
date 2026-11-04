@@ -168,7 +168,15 @@ export default function AppIntro({ onFinish, initialSlide = 0 }) {
           {SLIDES_DATA.map((slide, idx) => (
             <section key={slide.title} className="onboarding-slide photo-onboarding-slide">
               <div className="photo-slide-container" key={`${slide.title}-${currentSlide === idx}`}>
-
+                <div className="story-brand-header" aria-label="Tugendane Rides">
+                  <img src="/tugendane-car.png" alt="" />
+                  <span>TUGENDANE RIDES</span>
+                </div>
+                {idx === 1 && slide.question && (
+                  <p className="popping-sentence popping-sentence--question story-question-above">
+                    {slide.question}
+                  </p>
+                )}
                 {/* Photo occupies three fifths of the screen; story copy floats over it. */}
                 <div className="photo-image-wrapper">
                   <img
@@ -180,7 +188,7 @@ export default function AppIntro({ onFinish, initialSlide = 0 }) {
                   {/* Dark gradient at bottom for answer text readability */}
                   <div className="photo-gradient-overlay" />
 
-                  {slide.question && (
+                  {slide.question && idx !== 1 && (
                     <p
                       className="popping-sentence popping-sentence--question"
                       style={{ animationDelay: slide.questionDelay }}
@@ -191,7 +199,7 @@ export default function AppIntro({ onFinish, initialSlide = 0 }) {
 
                   {/* Answer text — overlaid at BOTTOM of the photo */}
                   <p
-                    className="popping-sentence popping-sentence--answer popping-sentence--on-photo"
+                    className={`popping-sentence popping-sentence--answer ${idx === 2 ? "story-answer-below" : "popping-sentence--on-photo"}`}
                     style={{ animationDelay: slide.answerDelay }}
                   >
                     {slide.answer}

@@ -44,7 +44,6 @@ import {
 import { ADMIN_EMAIL, TEXTS } from "./locales/texts";
 
 import Header from "./components/Header";
-import ComplianceBanner from "./components/ComplianceBanner";
 import BrandIntro from "./components/BrandIntro";
 import AppIntro from "./components/onboarding/AppIntro";
 import LanguageSelect from "./components/onboarding/LanguageSelect";
@@ -52,6 +51,7 @@ import PassengerHome from "./pages/PassengerHome";
 import DriverDashboard from "./pages/DriverDashboard";
 import TripsView from "./pages/TripsView";
 import ProfileView from "./pages/ProfileView";
+import FeedbackView from "./pages/FeedbackView";
 import AdminDashboard from "./pages/AdminDashboard";
 import AuthScreen from "./pages/AuthScreen";
 
@@ -79,6 +79,10 @@ export default function App() {
   const [langSelected, setLangSelected] = useState(false);
   const [showStoryWalkthrough, setShowStoryWalkthrough] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
+  const profileDisplayName = userProfile?.userName?.trim()
+    || userProfile?.fullName?.trim().split(/\s+/).filter(Boolean).at(-1)
+    || currentUser?.email?.split("@")[0]
+    || "Traveler";
   const [authPendingAction, setAuthPendingAction] = useState(null);
   const [authModalReason, setAuthModalReason] = useState("");
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -90,6 +94,8 @@ export default function App() {
   const [adminSelectedUser, setAdminSelectedUser] = useState(null);
   const [adminUserHistory, setAdminUserHistory] = useState(null);
   const [adminHistoryLoading, setAdminHistoryLoading] = useState(false);
+  const [adminFeeBookings, setAdminFeeBookings] = useState([]);
+  const [adminFeedbackItems, setAdminFeedbackItems] = useState([]);
   const knownBookingStates = useRef(new Map());
   const driverBookingsInitialized = useRef(false);
   const knownActiveRideIds = useRef(null);
@@ -117,6 +123,7 @@ export default function App() {
   const [bookingNotes, setBookingNotes] = useState("");
   const [bookingPaymentMethod, setBookingPaymentMethod] = useState("Cash at Pickup");
   const [bookingSuccessMsg, setBookingSuccessMsg] = useState("");
+  const [feeSubmitError, setFeeSubmitError] = useState("");
   const [showSosModal, setShowSosModal] = useState(false);
   const [showDriverSetupModal, setShowDriverSetupModal] = useState(false);
   const [driverUpgradeForm, setDriverUpgradeForm] = useState({ vehicle: "", plate: "", drivingLicense: "" });
@@ -166,7 +173,7 @@ export default function App() {
   });
 
   useEffect(() => {
-    if (!showMenu) return undefined;
+    if (!showMenu && !showPrivacyModal) return undefined;
     const previousBodyOverflow = document.body.style.overflow;
     const previousDocumentOverflow = document.documentElement.style.overflow;
     document.body.style.overflow = "hidden";
@@ -175,7 +182,7 @@ export default function App() {
       document.body.style.overflow = previousBodyOverflow;
       document.documentElement.style.overflow = previousDocumentOverflow;
     };
-  }, [showMenu]);
+  }, [showMenu, showPrivacyModal]);
 
   useEffect(() => {
     if (!currentUser) return undefined;
@@ -281,6 +288,7 @@ export default function App() {
   useEffect(() => {
     const goBack = () => {
       if (chatBooking) { setActiveChatBooking(null); setChatMessages([]); }
+      else if (showStoryWalkthrough) setShowStoryWalkthrough(false);
       else if (selectedRideForBooking) setSelectedRideForBooking(null);
       else if (showDriverSetupModal) setShowDriverSetupModal(false);
       else if (showPrivacyModal) setShowPrivacyModal(false);
@@ -301,11 +309,11 @@ export default function App() {
       listener?.remove();
       window.removeEventListener("popstate", handlePopState);
     };
-  }, [chatBooking, selectedRideForBooking, showDriverSetupModal, showPrivacyModal, showSosModal, showMenu, currentTab]);
+  }, [chatBooking, showStoryWalkthrough, selectedRideForBooking, showDriverSetupModal, showPrivacyModal, showSosModal, showMenu, currentTab]);
 
   // Chat message listener
   useEffect(() => {
-    if (!chatBooking?.firestoreId || chatBooking.status !== "Confirmed") return undefined;
+    if (!chatBooking?.firestoreId || chatBooking.status !== "Confirmed" || chatBooking.serviceFeeStatus !== "verified") return undefined;
     const messagesQuery = query(
       collection(db, "bookings", chatBooking.firestoreId, "messages"),
       orderBy("createdAt", "asc"),
@@ -398,6 +406,19 @@ export default function App() {
     });
   }, [currentUser]);
 
+  useEffect(() => {
+    if (currentUser?.email?.toLowerCase() !== ADMIN_EMAIL) return undefined;
+    const pendingFees = query(collection(db, "bookings"), where("serviceFeeStatus", "==", "review_pending"));
+    const stopFees = onSnapshot(pendingFees, (snapshot) => {
+      setAdminFeeBookings(snapshot.docs.map((item) => ({ firestoreId: item.id, ...item.data() })));
+    }, (error) => console.warn("Could not load service fee reviews:", error));
+    const feedbackQuery = query(collection(db, "feedback"), where("status", "==", "open"));
+    const stopFeedback = onSnapshot(feedbackQuery, (snapshot) => {
+      setAdminFeedbackItems(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+    }, (error) => console.warn("Could not load feedback reports:", error));
+    return () => { stopFees(); stopFeedback(); };
+  }, [currentUser]);
+
   // Intro splash progression for standalone BrandIntro
   useEffect(() => {
     const backgroundTimer = setTimeout(() => setIntroStage("background"), 750);
@@ -459,7 +480,7 @@ export default function App() {
     try {
       const passenger = {
         uid: currentUser.uid,
-        fullName: userProfile?.fullName || currentUser.displayName || currentUser.email?.split("@")[0] || "Tugendane Passenger",
+        fullName: profileDisplayName,
         phone: userProfile?.phone || "",
       };
 
@@ -530,7 +551,7 @@ export default function App() {
     try {
       const newRide = await createRide({
         driverId: currentUser.uid,
-        driverName: userProfile?.fullName || currentUser.displayName || "Verified Driver",
+        driverName: profileDisplayName,
         driverPhone: userProfile?.phone || "",
         from: driverPostForm.from,
         to: driverPostForm.to,
@@ -633,8 +654,12 @@ export default function App() {
       alert("Chat opens after the driver approves this booking.");
       return;
     }
+    if (chatBooking.serviceFeeStatus !== "verified") {
+      alert("Chat opens after an administrator verifies the service fee payment reference.");
+      return;
+    }
     try {
-      const fullName = userProfile?.fullName || currentUser.email || "Tugendane member";
+      const fullName = profileDisplayName || currentUser.email || "Tugendane member";
       const senderName = fullName.trim().split(/\s+/)[0] || "User";
       await addDoc(collection(db, "bookings", chatBooking.firestoreId, "messages"), {
         senderId: currentUser.uid,
@@ -678,6 +703,84 @@ export default function App() {
       await deleteDoc(doc(db, "bookings", chatBooking.firestoreId, "messages", messageId));
     } catch (error) {
       alert(`Message could not be deleted: ${error.message}`);
+    }
+  }
+
+  async function saveProfileDetails({ userName, profilePicture }) {
+    if (!currentUser) return false;
+    const update = { userName: userName.trim(), profilePicture: profilePicture || "" };
+    try {
+      await setDoc(doc(db, "users", currentUser.uid), update, { merge: true });
+      setUserProfile((profile) => ({ ...profile, ...update }));
+      setCurrentTab("home");
+      return true;
+    } catch (error) {
+      alert(`Profile changes could not be saved: ${error.message}`);
+      return false;
+    }
+  }
+
+  async function submitServiceFeeReference(booking, reference) {
+    const normalizedReference = reference.trim();
+    if (!currentUser || !booking?.firestoreId || normalizedReference.length < 4) {
+      setFeeSubmitError("Enter the MTN transaction reference from your payment receipt.");
+      return false;
+    }
+    try {
+      await updateDoc(doc(db, "bookings", booking.firestoreId), {
+        serviceFeeStatus: "review_pending",
+        serviceFeeReference: normalizedReference,
+        serviceFeeSubmittedAt: serverTimestamp(),
+      });
+      setFeeSubmitError("");
+      return true;
+    } catch (error) {
+      setFeeSubmitError(`Payment reference could not be submitted: ${error.message}`);
+      return false;
+    }
+  }
+
+  async function reviewServiceFee(booking, verified) {
+    try {
+      await updateDoc(doc(db, "bookings", booking.firestoreId), {
+        serviceFeeStatus: verified ? "verified" : "rejected",
+        serviceFeeReviewedAt: serverTimestamp(),
+        serviceFeeReviewedBy: currentUser.uid,
+      });
+    } catch (error) {
+      alert(`Service fee review could not be saved: ${error.message}`);
+    }
+  }
+
+  async function submitDriverRating({ booking, rating, comment }) {
+    if (!currentUser || !booking?.firestoreId) throw new Error("Choose a confirmed booking to rate.");
+    await setDoc(doc(db, "driverRatings", booking.firestoreId), {
+      bookingId: booking.firestoreId,
+      driverId: booking.driverId,
+      passengerId: currentUser.uid,
+      rating: Number(rating),
+      comment: comment || "",
+      createdAt: serverTimestamp(),
+    }, { merge: true });
+  }
+
+  async function submitGeneralFeedback({ category, message }) {
+    if (!currentUser) throw new Error("Log in to send feedback.");
+    await addDoc(collection(db, "feedback"), {
+      senderId: currentUser.uid,
+      senderName: profileDisplayName,
+      category,
+      message: message.trim(),
+      status: "open",
+      createdAt: serverTimestamp(),
+    });
+  }
+
+  async function closeFeedbackItem(feedbackId) {
+    try {
+      await updateDoc(doc(db, "feedback", feedbackId), { status: "resolved", resolvedAt: serverTimestamp() });
+    } catch (error) {
+      alert(`Feedback report could not be updated: ${error.message}`);
     }
   }
 
@@ -967,8 +1070,12 @@ export default function App() {
         adminUserHistory={adminUserHistory}
         setAdminUserHistory={setAdminUserHistory}
         adminHistoryLoading={adminHistoryLoading}
+        adminFeeBookings={adminFeeBookings}
+        adminFeedbackItems={adminFeedbackItems}
         toggleAdminUserActive={toggleAdminUserActive}
         openAdminUserHistory={openAdminUserHistory}
+        reviewServiceFee={reviewServiceFee}
+        closeFeedbackItem={closeFeedbackItem}
         handleLogout={handleLogout}
       />
     );
@@ -981,7 +1088,7 @@ export default function App() {
         <AppIntro onFinish={() => setShowStoryWalkthrough(false)} />
       )}
 
-      <Header
+      {currentTab !== "profile" && <Header
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
         bookingsCount={bookings.length}
@@ -998,9 +1105,9 @@ export default function App() {
         setShowStoryWalkthrough={setShowStoryWalkthrough}
         handleLogout={handleLogout}
         t={t}
-      />
+      />}
 
-      <main className="app-main">
+      <main className={`app-main ${currentTab === "profile" ? "app-main-profile" : ""}`}>
         {notificationMessage && (
           <div className="app-notification" role="status" aria-live="polite">
             <span>🔔 {notificationMessage}</span>
@@ -1010,8 +1117,6 @@ export default function App() {
           </div>
         )}
 
-        <ComplianceBanner t={t} />
-
         {currentTab === "home" && (
           <section className="dashboard-hero">
             <div className="hero-text">
@@ -1020,7 +1125,7 @@ export default function App() {
               </div>
               <h1>
                 {role === "passenger"
-                  ? `Hi, ${userProfile?.fullName?.trim().split(/\s+/).filter(Boolean).at(-1) || "Traveler"}. Where do you want to go?`
+                  ? `Hi, ${profileDisplayName}. Where do you want to go?`
                   : `${t.driverDashTitle} 🚗`}
               </h1>
               <p>
@@ -1060,6 +1165,15 @@ export default function App() {
           />
         )}
 
+        {currentTab === "feedback" && (
+          <FeedbackView
+            bookings={bookings.filter((booking) => booking.passengerId === currentUser?.uid)}
+            submitDriverRating={submitDriverRating}
+            submitGeneralFeedback={submitGeneralFeedback}
+            setCurrentTab={setCurrentTab}
+          />
+        )}
+
         {/* VIEW: MY TRIPS */}
         {currentTab === "trips" && (
           <TripsView
@@ -1070,6 +1184,8 @@ export default function App() {
             openTripChat={openTripChat}
             lang={lang}
             t={t}
+            onSubmitServiceFee={submitServiceFeeReference}
+            feeSubmitError={feeSubmitError}
           />
         )}
 
@@ -1097,9 +1213,8 @@ export default function App() {
             currentUser={currentUser}
             userProfile={userProfile}
             role={role}
-            setAuthModalReason={setAuthModalReason}
-            setAuthMode={setAuthMode}
-            setShowPrivacyModal={setShowPrivacyModal}
+            onSaveProfile={saveProfileDetails}
+            onBack={() => setCurrentTab("home")}
             handleLogout={handleLogout}
             lang={lang}
             t={t}
