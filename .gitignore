@@ -14,6 +14,7 @@ dist/
 # Android build outputs (generated, not source)
 android/app/build/
 android/.gradle/
+android/.gradle-user-home/
 android/build/
 android/local.properties
 

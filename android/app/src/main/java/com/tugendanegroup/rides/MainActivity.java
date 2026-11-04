@@ -1,4 +1,4 @@
-package com.tujyane.app;
+package com.tugendanegroup.rides;
 
 import com.getcapacitor.BridgeActivity;
 

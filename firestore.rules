@@ -1,39 +1,155 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.uid == "KLE3Wmcqi4YlPLfWWeIlI12fBio1"
+        && request.auth.token.email == "dushmarcel@gmail.com";
+    }
+
+    function isActiveAccount(userId) {
+      let profile = get(/databases/$(database)/documents/users/$(userId)).data;
+      return !("active" in profile) || profile.active == true;
+    }
+
     // Users Profile Collection
     // Read and write are strictly restricted to the account owner (prevents scraping National IDs & phone numbers)
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow get: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if request.auth != null && request.auth.uid == userId
+        && request.resource.data.role in ["passenger", "driver"]
+        && request.resource.data.active == true
+        && (request.resource.data.role != "driver" || (
+          request.resource.data.isDriver == true
+          && request.resource.data.vehicle is string && request.resource.data.vehicle.size() > 0
+          && request.resource.data.plate is string && request.resource.data.plate.size() > 0
+          && request.resource.data.drivingLicense is string && request.resource.data.drivingLicense.size() > 0
+        ));
+      allow update: if (isAdmin() && request.auth.uid != userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["active"]))
+        || (request.auth != null && request.auth.uid == userId
+        && ((!('active' in resource.data) && request.resource.data.active == true) || request.resource.data.active == resource.data.active)
+        && (request.resource.data.role == resource.data.role || (
+          request.resource.data.role == "driver"
+          && request.resource.data.isDriver == true
+          && request.resource.data.vehicle is string && request.resource.data.vehicle.size() > 0
+          && request.resource.data.plate is string && request.resource.data.plate.size() > 0
+          && request.resource.data.drivingLicense is string && request.resource.data.drivingLicense.size() > 0
+        ) || (request.resource.data.role == "passenger" && resource.data.role == "driver")));
     }
 
     // Rides Collection (Marketplace)
     // Any visitor can browse rides; creating requires authenticated driver matching driverId; delete is driver-only
     match /rides/{rideId} {
       allow read: if true;
-      allow create: if request.auth != null && request.resource.data.driverId == request.auth.uid;
-      allow update: if request.auth != null;
-      allow delete: if request.auth != null && resource.data.driverId == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.driverId == request.auth.uid
+        && isActiveAccount(request.auth.uid)
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "driver";
+      allow update: if request.auth != null && (
+        (resource.data.driverId == request.auth.uid
+          && isActiveAccount(request.auth.uid)
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "driver")
+        || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "passenger"
+          && isActiveAccount(request.auth.uid)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["availableSeats", "status", "lastBookingId"])
+          && request.resource.data.lastBookingId is string
+          && existsAfter(/databases/$(database)/documents/bookings/$(request.resource.data.lastBookingId))
+          && getAfter(/databases/$(database)/documents/bookings/$(request.resource.data.lastBookingId)).data.passengerId == request.auth.uid
+          && getAfter(/databases/$(database)/documents/bookings/$(request.resource.data.lastBookingId)).data.rideId == rideId
+          && getAfter(/databases/$(database)/documents/bookings/$(request.resource.data.lastBookingId)).data.driverId == resource.data.driverId
+          && request.resource.data.availableSeats == resource.data.availableSeats - getAfter(/databases/$(database)/documents/bookings/$(request.resource.data.lastBookingId)).data.seatsBooked
+          && request.resource.data.availableSeats >= 0
+          && request.resource.data.status == (request.resource.data.availableSeats == 0 ? "full" : "active"))
+      );
+      allow delete: if request.auth != null && resource.data.driverId == request.auth.uid
+        && isActiveAccount(request.auth.uid)
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "driver";
     }
 
     // Bookings Collection
     // Strictly private: only the passenger who booked or the driver receiving the booking can read or update
     // Ownership fields (passengerId, driverId, rideId, totalPrice) cannot be modified after creation
     match /bookings/{bookingId} {
-      allow read: if request.auth != null && (
+      allow read: if isAdmin() || (request.auth != null && isActiveAccount(request.auth.uid) && (
         resource.data.passengerId == request.auth.uid || 
         resource.data.driverId == request.auth.uid
-      );
-      allow create: if request.auth != null && request.resource.data.passengerId == request.auth.uid;
-      allow update: if request.auth != null && (
-        resource.data.passengerId == request.auth.uid || 
-        resource.data.driverId == request.auth.uid
-      ) && (
+      ));
+      allow create: if request.auth != null && request.resource.data.passengerId == request.auth.uid
+        && isActiveAccount(request.auth.uid)
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "passenger"
+        && request.resource.data.status == "Pending"
+        && request.resource.data.seatsBooked is int && request.resource.data.seatsBooked > 0
+        && exists(/databases/$(database)/documents/rides/$(request.resource.data.rideId))
+        && request.resource.data.driverId == get(/databases/$(database)/documents/rides/$(request.resource.data.rideId)).data.driverId
+        && request.resource.data.seatsBooked <= get(/databases/$(database)/documents/rides/$(request.resource.data.rideId)).data.availableSeats
+        && getAfter(/databases/$(database)/documents/rides/$(request.resource.data.rideId)).data.availableSeats
+          == get(/databases/$(database)/documents/rides/$(request.resource.data.rideId)).data.availableSeats - request.resource.data.seatsBooked
+        && getAfter(/databases/$(database)/documents/rides/$(request.resource.data.rideId)).data.lastBookingId == bookingId;
+      allow update: if request.auth != null && resource.data.driverId == request.auth.uid
+        && isActiveAccount(request.auth.uid)
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "driver"
+        && request.resource.data.status in ["Confirmed", "Declined"] && (
         request.resource.data.passengerId == resource.data.passengerId &&
         request.resource.data.driverId == resource.data.driverId &&
         request.resource.data.rideId == resource.data.rideId &&
-        request.resource.data.totalPrice == resource.data.totalPrice
+        request.resource.data.totalPrice == resource.data.totalPrice &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status"])
       );
+
+      match /messages/{messageId} {
+        function booking() {
+          return get(/databases/$(database)/documents/bookings/$(bookingId)).data;
+        }
+        function isParticipant() {
+          return request.auth != null && (booking().passengerId == request.auth.uid || booking().driverId == request.auth.uid);
+        }
+        allow read: if isParticipant() && isActiveAccount(request.auth.uid) && booking().status == "Confirmed";
+        allow create: if isParticipant() && isActiveAccount(request.auth.uid) && booking().status == "Confirmed"
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 2000;
+        allow update: if isParticipant() && isActiveAccount(request.auth.uid) && booking().status == "Confirmed"
+          && resource.data.senderId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["text", "edited", "editedAt"])
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 2000
+          && request.resource.data.edited == true;
+        allow delete: if isParticipant() && isActiveAccount(request.auth.uid) && booking().status == "Confirmed"
+          && resource.data.senderId == request.auth.uid;
+      }
+    }
+
+    match /users/{userId}/notifications/{notificationId} {
+      function notificationBooking() {
+        return request.resource.data.data is map
+          && request.resource.data.data.keys().hasAny(["bookingId"])
+          && request.resource.data.data.bookingId is string
+          && get(/databases/$(database)/documents/bookings/$(request.resource.data.data.bookingId)).data.status == "Confirmed"
+          && (get(/databases/$(database)/documents/bookings/$(request.resource.data.data.bookingId)).data.passengerId == userId
+            || get(/databases/$(database)/documents/bookings/$(request.resource.data.data.bookingId)).data.driverId == userId)
+          && (get(/databases/$(database)/documents/bookings/$(request.resource.data.data.bookingId)).data.passengerId == request.auth.uid
+            || get(/databases/$(database)/documents/bookings/$(request.resource.data.data.bookingId)).data.driverId == request.auth.uid);
+      }
+      function notificationRideBooking() {
+        return request.resource.data.data is map
+          && request.resource.data.data.keys().hasAny(["rideId"])
+          && request.resource.data.data.rideId is string
+          && get(/databases/$(database)/documents/rides/$(request.resource.data.data.rideId)).data.driverId == userId
+          && get(/databases/$(database)/documents/rides/$(request.resource.data.data.rideId)).data.lastBookingId is string
+          && get(/databases/$(database)/documents/bookings/$(get(/databases/$(database)/documents/rides/$(request.resource.data.data.rideId)).data.lastBookingId)).data.passengerId == request.auth.uid;
+      }
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && isActiveAccount(request.auth.uid)
+        && request.resource.data.keys().hasOnly(["title", "body", "data", "read", "createdAt"])
+        && request.resource.data.title is string
+        && request.resource.data.body is string
+        && request.resource.data.read == false
+        && (notificationBooking() || notificationRideBooking());
+      allow update, delete: if request.auth != null && request.auth.uid == userId;
     }
   }
 }

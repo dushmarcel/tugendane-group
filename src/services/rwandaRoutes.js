@@ -80,7 +80,8 @@ export const ROUTE_PRICING = {
   "bujumbura (bi)-kigali": 20000,
 };
 
-export const PLATFORM_COMMISSION_PERCENT = 5; // 5% platform fee for Tugendane Rides marketplace
+// Keep the in-app fee at zero until a real payment processor is connected.
+export const PLATFORM_COMMISSION_PERCENT = 0;
 
 export function getSuggestedPrice(from, to) {
   if (!from || !to) return 4000;
@@ -104,3 +105,21 @@ export function calculatePricingBreakdown(seatPrice, seatCount = 1) {
     passengerTotal,
   };
 }
+
+export const RWANDA_CITY_COORDINATES = {
+  Kigali: { lat: -1.9441, lng: 30.0619, label: "Kigali (Capital)" },
+  Huye: { lat: -2.5967, lng: 29.7394, label: "Huye / Butare" },
+  Musanze: { lat: -1.4998, lng: 29.6350, label: "Musanze / Ruhengeri" },
+  Rubavu: { lat: -1.6741, lng: 29.2667, label: "Rubavu / Gisenyi" },
+  Muhanga: { lat: -2.0833, lng: 29.7500, label: "Muhanga / Gitarama" },
+  Rusizi: { lat: -2.4833, lng: 28.9000, label: "Rusizi / Cyangugu" },
+  Nyagatare: { lat: -1.2974, lng: 30.3247, label: "Nyagatare" },
+  Kayonza: { lat: -1.9333, lng: 30.6500, label: "Kayonza" },
+  Rwamagana: { lat: -1.9487, lng: 30.4347, label: "Rwamagana" },
+  Nyanza: { lat: -2.3517, lng: 29.7508, label: "Nyanza" },
+  Karongi: { lat: -2.1583, lng: 29.3500, label: "Karongi / Kibuye" },
+  Gicumbi: { lat: -1.5833, lng: 30.0667, label: "Gicumbi / Byumba" },
+  Bugesera: { lat: -2.1500, lng: 30.0833, label: "Bugesera" },
+  Ruhango: { lat: -2.2167, lng: 29.7833, label: "Ruhango" },
+};
+

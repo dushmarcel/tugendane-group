@@ -7,7 +7,7 @@ import {
   orderBy,
   query,
   serverTimestamp,
-  updateDoc,
+  runTransaction,
   where,
 } from "firebase/firestore";
 
@@ -16,187 +16,23 @@ import { db } from "../firebase";
 const STORAGE_KEY_RIDES = "tugendane_rides_v1";
 const STORAGE_KEY_BOOKINGS = "tugendane_bookings_v1";
 
-// Realistic initial sample rides connecting Rwandan towns with private cars
-const INITIAL_RIDES = [
-  {
-    id: "ride-huye-kigali-1",
-    driverId: "driver-marcel",
-    driverName: "Marcel Dushimimana",
-    driverPhone: "+250 788 123 456",
-    driverRating: "4.9",
-    driverTrips: 24,
-    isVerified: true,
-    nationalIdVerified: true,
-    licenseVerified: true,
-    from: "Huye",
-    to: "Kigali",
-    pickupLocation: "University of Rwanda (UR Huye Main Gate)",
-    dropoffLocation: "Nyabugogo / Kigali Downtown",
-    departureDate: new Date(Date.now() + 86400000).toISOString().split("T")[0],
-    departureTime: "08:30",
-    availableSeats: 3,
-    totalSeats: 4,
-    price: 4500,
-    vehicle: "Toyota RAV4 (Silver)",
-    plate: "RAF 782 C",
-    status: "active",
-    description: "Traveling to Kigali for business. Spacious trunk for luggage, clean AC car. Safe driving guaranteed.",
-    preferences: {
-      noSmoking: true,
-      musicAllowed: true,
-      quietRide: false,
-      womenOnly: false,
-      ac: true,
-      luggage: "Medium suitcase ok",
-    },
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "ride-kigali-huye-2",
-    driverId: "driver-aime",
-    driverName: "Aimé Mucyo",
-    driverPhone: "+250 783 998 112",
-    driverRating: "4.8",
-    driverTrips: 16,
-    isVerified: true,
-    nationalIdVerified: true,
-    licenseVerified: true,
-    from: "Kigali",
-    to: "Huye",
-    pickupLocation: "Sonatubes Roundabout (Shell Station)",
-    dropoffLocation: "Huye Town Centre / Market",
-    departureDate: new Date(Date.now() + 86400000).toISOString().split("T")[0],
-    departureTime: "16:00",
-    availableSeats: 2,
-    totalSeats: 3,
-    price: 4500,
-    vehicle: "Toyota Corolla (Blue)",
-    plate: "RAC 340 M",
-    status: "active",
-    description: "Heading home to Huye for the weekend. Leaving promptly at 4:00 PM from Sonatubes. Welcome aboard!",
-    preferences: {
-      noSmoking: true,
-      musicAllowed: true,
-      quietRide: false,
-      womenOnly: false,
-      ac: true,
-      luggage: "Small / Handbag only",
-    },
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "ride-kigali-musanze-3",
-    driverId: "driver-clarisse",
-    driverName: "Clarisse Uwase",
-    driverPhone: "+250 785 432 109",
-    driverRating: "5.0",
-    driverTrips: 31,
-    isVerified: true,
-    nationalIdVerified: true,
-    licenseVerified: true,
-    from: "Kigali",
-    to: "Musanze",
-    pickupLocation: "Gisimenti (Remera)",
-    dropoffLocation: "Musanze Modern Market / Goico",
-    departureDate: new Date(Date.now() + 86400000 * 2).toISOString().split("T")[0],
-    departureTime: "07:15",
-    availableSeats: 3,
-    totalSeats: 4,
-    price: 4000,
-    vehicle: "Hyundai Tucson (White)",
-    plate: "RAD 612 K",
-    status: "active",
-    description: "Women-friendly ride. Calm driving, comfortable seats, phone charging cables available in car.",
-    preferences: {
-      noSmoking: true,
-      musicAllowed: false,
-      quietRide: true,
-      womenOnly: true,
-      ac: true,
-      luggage: "Medium suitcase ok",
-    },
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "ride-kigali-rubavu-4",
-    driverId: "driver-jean",
-    driverName: "Jean-Paul Ndayisaba",
-    driverPhone: "+250 788 554 221",
-    driverRating: "4.7",
-    driverTrips: 19,
-    isVerified: true,
-    nationalIdVerified: true,
-    licenseVerified: true,
-    from: "Kigali",
-    to: "Rubavu",
-    pickupLocation: "Nyabugogo Bus Park (Opposite Main Gate)",
-    dropoffLocation: "Gisenyi Town / Serena Hotel",
-    departureDate: new Date(Date.now() + 86400000).toISOString().split("T")[0],
-    departureTime: "14:00",
-    availableSeats: 3,
-    totalSeats: 4,
-    price: 5500,
-    vehicle: "Subaru Forester (Grey)",
-    plate: "RAE 905 P",
-    status: "active",
-    description: "Scenic trip to Rubavu/Gisenyi. Reliable private car, no delays waiting for buses to fill up.",
-    preferences: {
-      noSmoking: true,
-      musicAllowed: true,
-      quietRide: false,
-      womenOnly: false,
-      ac: true,
-      luggage: "Large suitcase ok",
-    },
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "ride-muhanga-kigali-5",
-    driverId: "driver-eric",
-    driverName: "Eric Habimana",
-    driverPhone: "+250 782 110 339",
-    driverRating: "4.9",
-    driverTrips: 14,
-    isVerified: true,
-    nationalIdVerified: true,
-    licenseVerified: true,
-    from: "Muhanga",
-    to: "Kigali",
-    pickupLocation: "Muhanga Roundabout",
-    dropoffLocation: "Kigali Downtown",
-    departureDate: new Date(Date.now() + 86400000).toISOString().split("T")[0],
-    departureTime: "06:45",
-    availableSeats: 2,
-    totalSeats: 3,
-    price: 2500,
-    vehicle: "Toyota Yaris (Black)",
-    plate: "RAC 118 X",
-    status: "active",
-    description: "Daily morning commute to Kigali. Direct, fast, comfortable.",
-    preferences: {
-      noSmoking: true,
-      musicAllowed: true,
-      quietRide: false,
-      womenOnly: false,
-      ac: false,
-      luggage: "Small backpack",
-    },
-    createdAt: new Date().toISOString(),
-  },
-];
+// Old demo entries are removed from cached marketplace data.
+const DEMO_RIDE_IDS = new Set([
+  "ride-huye-kigali-1", "ride-kigali-huye-2", "ride-kigali-musanze-3",
+  "ride-kigali-rubavu-4", "ride-muhanga-kigali-5",
+]);
 
 // Helper to get local stored rides
 function getLocalRides() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_RIDES);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(INITIAL_RIDES));
-      return INITIAL_RIDES;
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length ? parsed : INITIAL_RIDES;
+    const safeRides = Array.isArray(parsed) ? parsed.filter((ride) => !DEMO_RIDE_IDS.has(ride.id) && !String(ride.driverId || "").startsWith("driver-") ) : [];
+    if (safeRides.length !== parsed.length) localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(safeRides));
+    return safeRides;
   } catch {
-    return INITIAL_RIDES;
+    return [];
   }
 }
 
@@ -233,15 +69,18 @@ function mapRideDoc(docSnapshot) {
     driverId: data.driverId || "",
     driver: data.driverName || "Driver",
     driverName: data.driverName || "Driver",
-    driverPhone: data.driverPhone || "+250 788 000 000",
-    driverRating: data.driverRating || "5.0",
-    driverTrips: data.driverTrips || 1,
-    isVerified: Boolean(data.isVerified ?? true),
-    nationalIdVerified: Boolean(data.nationalIdVerified ?? true),
-    licenseVerified: Boolean(data.licenseVerified ?? true),
+    driverPhone: data.driverPhone || "",
+    driverRating: null,
+    driverTrips: 0,
+    // Verification and review flows are not yet connected to an official reviewer.
+    isVerified: false,
+    nationalIdVerified: false,
+    licenseVerified: false,
     from: data.from,
     to: data.to,
     pickupLocation: data.pickupLocation || "",
+    pickupLatitude: typeof data.pickupLatitude === "number" ? data.pickupLatitude : null,
+    pickupLongitude: typeof data.pickupLongitude === "number" ? data.pickupLongitude : null,
     dropoffLocation: data.dropoffLocation || "",
     departureDate: data.departureDate,
     departureTime: data.departureTime,
@@ -267,20 +106,22 @@ function mapRideDoc(docSnapshot) {
 }
 
 export async function createRide(rideData) {
-  const localRides = getLocalRides();
   const newRide = {
-    id: `ride-${Date.now()}`,
+    id: "",
+    firestoreId: "",
     driverId: rideData.driverId || "demo-driver",
     driverName: rideData.driverName || "Driver",
-    driverPhone: rideData.driverPhone || "+250 788 123 456",
-    driverRating: "5.0",
-    driverTrips: 1,
-    isVerified: true,
-    nationalIdVerified: true,
-    licenseVerified: true,
+    driverPhone: rideData.driverPhone || "",
+    driverRating: null,
+    driverTrips: 0,
+    isVerified: false,
+    nationalIdVerified: false,
+    licenseVerified: false,
     from: rideData.from,
     to: rideData.to,
     pickupLocation: rideData.pickupLocation || `${rideData.from} Centre`,
+    pickupLatitude: Number.isFinite(rideData.pickupLatitude) ? rideData.pickupLatitude : null,
+    pickupLongitude: Number.isFinite(rideData.pickupLongitude) ? rideData.pickupLongitude : null,
     dropoffLocation: rideData.dropoffLocation || `${rideData.to} Centre`,
     departureDate: rideData.departureDate,
     departureTime: rideData.departureTime,
@@ -303,22 +144,11 @@ export async function createRide(rideData) {
     createdAt: new Date().toISOString(),
   };
 
-  // Save to local storage first for snappy response
-  const updatedRides = [newRide, ...localRides];
-  saveLocalRides(updatedRides);
-
-  // Sync to Firestore if online & auth available
-  try {
-    const ridesCollection = collection(db, "rides");
-    const payload = {
-      ...newRide,
-      createdAt: serverTimestamp(),
-    };
-    const rideRef = await addDoc(ridesCollection, payload);
-    newRide.firestoreId = rideRef.id;
-  } catch (err) {
-    console.log("Firestore write optional / skipped:", err?.message);
-  }
+  const rideRef = await addDoc(collection(db, "rides"), { ...newRide, createdAt: serverTimestamp() });
+  newRide.id = rideRef.id;
+  newRide.firestoreId = rideRef.id;
+  const localRides = getLocalRides();
+  saveLocalRides([newRide, ...localRides]);
 
   return newRide;
 }
@@ -339,16 +169,14 @@ export async function getAvailableRides() {
     if (!snapshot.empty) {
       const firestoreRides = snapshot.docs.map(mapRideDoc);
       // Merge unique by ID
-      const existingIds = new Set(firestoreRides.map((r) => r.id));
-      const combined = [...firestoreRides, ...localRides.filter((r) => !existingIds.has(r.id))];
-      saveLocalRides(combined);
-      return combined;
+      saveLocalRides(firestoreRides);
+      return firestoreRides;
     }
   } catch (err) {
     console.log("Using cached/local rides:", err?.message);
   }
 
-  return localRides.filter((r) => r.status === "active");
+  return localRides.filter((r) => r.firestoreId && r.status === "active");
 }
 
 export async function searchRides(from, to, date, preferences = {}) {
@@ -390,81 +218,43 @@ export async function getRideById(id) {
 // Seat Booking / Reservation Flow
 export async function bookRide({ rideId, passenger, seatsCount, pickupPoint, notes, paymentMethod }) {
   const allRides = getLocalRides();
-  const rideIndex = allRides.findIndex((r) => r.id === rideId);
-
-  if (rideIndex === -1) {
-    throw new Error("Ride not found");
-  }
-
-  const ride = allRides[rideIndex];
-  if (ride.availableSeats < seatsCount) {
-    throw new Error("Not enough empty seats available");
-  }
-
-  // Deduct seats
-  ride.availableSeats -= seatsCount;
-  ride.seats = ride.availableSeats;
-  if (ride.availableSeats === 0) {
-    ride.status = "full";
-  }
-  allRides[rideIndex] = ride;
-  saveLocalRides(allRides);
-
-  // Create booking record
-  const booking = {
-    id: `book-${Date.now()}`,
-    rideId: ride.id,
-    driverId: ride.driverId,
-    driverName: ride.driverName,
-    driverPhone: ride.driverPhone,
-    passengerId: passenger.uid || "guest-passenger",
-    passengerName: passenger.fullName || "Passenger",
-    passengerPhone: passenger.phone || "+250 788 000 000",
-    from: ride.from,
-    to: ride.to,
-    pickupLocation: pickupPoint || ride.pickupLocation,
-    dropoffLocation: ride.dropoffLocation,
-    departureDate: ride.departureDate,
-    departureTime: ride.departureTime,
-    seatsBooked: seatsCount,
-    pricePerSeat: ride.price,
-    subtotal: ride.price * seatsCount,
-    platformFee: Math.round(ride.price * seatsCount * 0.05),
-    totalPrice: Math.round(ride.price * seatsCount * 1.05),
-    vehicle: ride.vehicle,
-    plate: ride.plate,
-    paymentMethod: paymentMethod || "MTN Mobile Money",
-    paymentStatus: "Pending Pickup Contribution",
-    status: "Confirmed",
-    notes: notes || "",
-    bookedAt: new Date().toISOString(),
-  };
-
-  const existingBookings = getLocalBookings();
-  const updatedBookings = [booking, ...existingBookings];
-  saveLocalBookings(updatedBookings);
-
-  // Sync booking to Firestore
-  try {
-    const bookingsCollection = collection(db, "bookings");
-    const docRef = await addDoc(bookingsCollection, {
-      ...booking,
-      createdAt: serverTimestamp(),
-    });
-    booking.firestoreId = docRef.id;
-
-    // Update availableSeats on the ride in Firestore if it has an id
-    if (ride.firestoreId || (!ride.id.startsWith("ride-huye") && !ride.id.startsWith("ride-kigali") && !ride.id.startsWith("ride-muhanga"))) {
-      const rideDocRef = doc(db, "rides", ride.firestoreId || ride.id);
-      await updateDoc(rideDocRef, {
-        availableSeats: ride.availableSeats,
-        status: ride.status,
-      });
-    }
-  } catch (err) {
-    console.log("Firestore booking sync error:", err?.message);
-  }
-
+  const ride = allRides.find((item) => item.id === rideId || item.firestoreId === rideId);
+  if (!ride) throw new Error("This ride is no longer available. Refresh the list and choose another ride.");
+  if (!passenger?.uid) throw new Error("Sign in before requesting a seat.");
+  if (!Number.isInteger(seatsCount) || seatsCount < 1) throw new Error("Choose at least one seat.");
+  const rideRef = doc(db, "rides", ride.firestoreId || ride.id);
+  const bookingRef = doc(collection(db, "bookings"));
+  const booking = await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(rideRef);
+    if (!snapshot.exists()) throw new Error("This ride is no longer available. Refresh the list and choose another ride.");
+    const currentRide = mapRideDoc(snapshot);
+    if (currentRide.status !== "active" || currentRide.availableSeats < seatsCount) throw new Error("Those seats were just taken. Refresh the rides and try again.");
+    if (currentRide.driverId === passenger.uid) throw new Error("You cannot book your own ride.");
+    const remaining = currentRide.availableSeats - seatsCount;
+    const subtotal = currentRide.price * seatsCount;
+    const platformFee = 0;
+    const bookingData = {
+      id: bookingRef.id, rideId: rideRef.id, driverId: currentRide.driverId,
+      driverName: currentRide.driverName, driverPhone: currentRide.driverPhone,
+      passengerId: passenger.uid, passengerName: passenger.fullName || "Passenger",
+      passengerPhone: passenger.phone || "", from: currentRide.from, to: currentRide.to,
+      pickupLocation: pickupPoint || currentRide.pickupLocation,
+      pickupLatitude: currentRide.pickupLatitude ?? null, pickupLongitude: currentRide.pickupLongitude ?? null,
+      dropoffLocation: currentRide.dropoffLocation, departureDate: currentRide.departureDate,
+      departureTime: currentRide.departureTime, seatsBooked: seatsCount,
+      pricePerSeat: currentRide.price, subtotal, platformFee, totalPrice: subtotal + platformFee,
+      vehicle: currentRide.vehicle, plate: currentRide.plate,
+      paymentMethod: paymentMethod || "Pay driver directly",
+      paymentStatus: "Not processed in app", status: "Pending", notes: notes || "",
+      bookedAt: new Date().toISOString(), createdAt: serverTimestamp(),
+    };
+    transaction.update(rideRef, { availableSeats: remaining, status: remaining === 0 ? "full" : "active", lastBookingId: bookingRef.id });
+    transaction.set(bookingRef, bookingData);
+    return { ...bookingData, firestoreId: bookingRef.id };
+  });
+  const updatedRides = getLocalRides().map((item) => item.id === ride.id ? { ...item, availableSeats: Math.max(0, item.availableSeats - seatsCount), seats: Math.max(0, item.availableSeats - seatsCount) } : item);
+  saveLocalRides(updatedRides);
+  saveLocalBookings([booking, ...getLocalBookings()]);
   return booking;
 }
 
@@ -472,23 +262,31 @@ export async function bookRide({ rideId, passenger, seatsCount, pickupPoint, not
 export async function updateBookingStatus(bookingId, newStatus) {
   const bookings = getLocalBookings();
   const idx = bookings.findIndex((b) => b.id === bookingId || b.firestoreId === bookingId);
-  if (idx !== -1) {
-    bookings[idx].status = newStatus;
-    saveLocalBookings(bookings);
-
-    // Sync status to Firestore
-    try {
-      if (bookings[idx].firestoreId) {
-        const bookDocRef = doc(db, "bookings", bookings[idx].firestoreId);
-        await updateDoc(bookDocRef, { status: newStatus });
+  const bookingIdInFirestore = idx >= 0 ? bookings[idx].firestoreId || bookings[idx].id : bookingId;
+  if (!bookingIdInFirestore) throw new Error("This request is not synced yet. Connect to the internet and refresh before responding.");
+  const bookingRef = doc(db, "bookings", bookingIdInFirestore);
+  const updated = await runTransaction(db, async (transaction) => {
+    const bookingSnapshot = await transaction.get(bookingRef);
+    if (!bookingSnapshot.exists()) throw new Error("Booking not found. Refresh your requests.");
+    const booking = bookingSnapshot.data();
+    if (booking.status !== "Pending") throw new Error("This request has already been answered.");
+    if (newStatus === "Declined") {
+      const rideRef = doc(db, "rides", booking.rideId);
+      const rideSnapshot = await transaction.get(rideRef);
+      if (rideSnapshot.exists()) {
+        const ride = rideSnapshot.data();
+        const seats = Number(ride.availableSeats || 0) + Number(booking.seatsBooked || 0);
+        transaction.update(rideRef, { availableSeats: seats, status: "active" });
       }
-    } catch (err) {
-      console.log("Firestore status sync error:", err?.message);
     }
-
-    return bookings[idx];
+    transaction.update(bookingRef, { status: newStatus });
+    return { ...booking, firestoreId: bookingIdInFirestore, status: newStatus };
+  });
+  if (idx >= 0) {
+    bookings[idx] = updated;
+    saveLocalBookings(bookings);
   }
-  return null;
+  return updated;
 }
 
 // Fetch user bookings from Firestore
