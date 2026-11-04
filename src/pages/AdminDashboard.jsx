@@ -1,4 +1,5 @@
 import { ADMIN_EMAIL } from "../locales/texts";
+import { calculateServiceFee } from "../services/rwandaRoutes";
 
 export default function AdminDashboard({
   adminUsers,
@@ -68,7 +69,13 @@ export default function AdminDashboard({
                 <article className="admin-review-row" key={booking.firestoreId}>
                   <div>
                     <strong>{booking.passengerName || "Passenger"} · {booking.from} → {booking.to}</strong>
-                    <span>{(booking.platformFee || Math.round(Number(booking.subtotal || 0) * .1)).toLocaleString()} RWF · MTN ref: <b>{booking.serviceFeeReference}</b></span>
+                    <span>{calculateServiceFee(booking.subtotal || booking.totalPrice).toLocaleString()} RWF · MTN transaction ID: <b>{booking.serviceFeeReference || "Not provided"}</b></span>
+                    {booking.serviceFeeProofImage && (
+                      <a className="admin-proof-link" href={booking.serviceFeeProofImage} target="_blank" rel="noreferrer">
+                        <img className="admin-proof-thumbnail" src={booking.serviceFeeProofImage} alt="Passenger MTN payment screenshot" />
+                        View payment screenshot
+                      </a>
+                    )}
                   </div>
                   <div className="admin-review-actions">
                     <button type="button" className="btn btn-primary btn-sm" onClick={() => reviewServiceFee(booking, true)}>Verify payment</button>

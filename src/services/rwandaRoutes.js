@@ -81,7 +81,11 @@ export const ROUTE_PRICING = {
 };
 
 // The service fee is paid manually to Tugendane after driver approval.
-export const PLATFORM_COMMISSION_PERCENT = 10;
+export const PLATFORM_COMMISSION_PERCENT = 15;
+
+export function calculateServiceFee(ticketAmount) {
+  return Math.round(Number(ticketAmount || 0) * (PLATFORM_COMMISSION_PERCENT / 100));
+}
 
 export function getSuggestedPrice(from, to) {
   if (!from || !to) return 4000;
@@ -92,7 +96,7 @@ export function getSuggestedPrice(from, to) {
 export function calculatePricingBreakdown(seatPrice, seatCount = 1) {
   const priceNum = typeof seatPrice === "number" ? seatPrice : parseInt(String(seatPrice).replace(/[^0-9]/g, ""), 10) || 4500;
   const subtotal = priceNum * seatCount;
-  const platformFee = Math.round(subtotal * (PLATFORM_COMMISSION_PERCENT / 100));
+  const platformFee = calculateServiceFee(subtotal);
   const driverNetEarnings = subtotal;
   const passengerTotal = subtotal + platformFee;
 

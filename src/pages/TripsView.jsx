@@ -1,35 +1,112 @@
 import { useState } from "react";
+import { calculateServiceFee } from "../services/rwandaRoutes";
 
 function ServiceFeePrompt({ booking, onSubmitServiceFee, error }) {
   const [reference, setReference] = useState("");
-  const feeAmount = booking.platformFee || Math.round(Number(booking.subtotal || booking.totalPrice || 0) * 0.1);
+  const [proofImage, setProofImage] = useState("");
+  const [proofError, setProofError] = useState("");
+  const [paymentOpened, setPaymentOpened] = useState(false);
+  const ticketAmount = Number(booking.subtotal || booking.totalPrice || 0);
+  const feeAmount = calculateServiceFee(ticketAmount);
+  const ussdCode = `*182*8*2*744405*${feeAmount}#`;
   const [submitting, setSubmitting] = useState(false);
+
+  async function openMtnPayment() {
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+      await navigator.clipboard.writeText(ussdCode);
+    } catch {
+      const fallback = document.createElement("textarea");
+      fallback.value = ussdCode;
+      fallback.setAttribute("readonly", "");
+      fallback.style.position = "fixed";
+      fallback.style.opacity = "0";
+      document.body.appendChild(fallback);
+      fallback.select();
+      document.execCommand("copy");
+      fallback.remove();
+    }
+    setPaymentOpened(true);
+    window.location.href = `tel:${ussdCode.replace("#", "%23")}`;
+  }
+
+  function handleProofChange(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setProofError("");
+    if (!file.type.startsWith("image/")) {
+      setProofError("Choose an image file such as a payment screenshot.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => setProofError("This image could not be opened. Try another screenshot.");
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => setProofError("This image could not be opened. Try another screenshot.");
+      image.onload = () => {
+        const scale = Math.min(1200 / image.width, 1200 / image.height, 1);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+        const compressed = canvas.toDataURL("image/jpeg", 0.68);
+        if (compressed.length > 380_000) {
+          setProofError("This screenshot is too large to attach. Choose a smaller image.");
+          return;
+        }
+        setProofImage(compressed);
+      };
+      image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
 
   async function submit(event) {
     event.preventDefault();
+    if (!reference.trim() && !proofImage) {
+      setProofError("Enter the transaction ID or attach a payment screenshot.");
+      return;
+    }
     setSubmitting(true);
-    const submitted = await onSubmitServiceFee(booking, reference);
-    if (submitted) setReference("");
+    const submitted = await onSubmitServiceFee(booking, { reference, proofImage });
+    if (submitted) {
+      setReference("");
+      setProofImage("");
+      setProofError("");
+    }
     setSubmitting(false);
   }
 
   if (booking.serviceFeeStatus === "review_pending") {
-    return <div className="service-fee-pending" role="status">Payment reference {booking.serviceFeeReference} is being checked. Driver details and chat unlock after review.</div>;
+    return <div className="service-fee-pending" role="status">Your payment {booking.serviceFeeReference ? `reference ${booking.serviceFeeReference}` : "screenshot"} is being checked. Driver details and chat unlock after review.</div>;
   }
 
   return (
-    <form className="service-fee-prompt" onSubmit={submit}>
-      <strong>Pay the Tugendane service fee to connect</strong>
-      <p>Send <b>{feeAmount.toLocaleString()} RWF</b> (10% of the ticket price) to Tugendane using MTN MoMo code <b>744405</b>. Pay the full ticket price to the driver when you meet.</p>
-      <label className="form-group">
-        <span>MTN transaction reference</span>
-        <input value={reference} onChange={(event) => setReference(event.target.value)} maxLength={80} placeholder="Reference from your payment receipt" required />
-      </label>
-      {error && <p className="feedback-error" role="alert">{error}</p>}
-      <button className="btn btn-primary btn-full" type="submit" disabled={submitting || reference.trim().length < 4}>
-        {submitting ? "Submitting…" : "Submit payment reference"}
+    <section className="service-fee-prompt">
+      <strong>Pay the Tugendane booking fee to connect</strong>
+      <p>Pay <b>{feeAmount.toLocaleString()} RWF</b> (15% of the ticket price) to Tugendane. The full ticket price is paid to the driver when you meet.</p>
+      <button type="button" className="btn btn-primary btn-full service-fee-pay-button" onClick={openMtnPayment}>
+        📱 Open MTN MoMo and pay {feeAmount.toLocaleString()} RWF
       </button>
-    </form>
+      <small className="service-fee-code-hint">This copies {ussdCode} and opens your phone dialer with the code ready.</small>
+      {paymentOpened && <p className="service-fee-copy-confirmation" role="status">If the dialer did not open, use the copied code in your phone app.</p>}
+      <form onSubmit={submit} className="service-fee-proof-form">
+        <label className="form-group">
+          <span>MTN transaction ID <em>or</em> payment screenshot</span>
+          <input value={reference} onChange={(event) => setReference(event.target.value)} maxLength={80} placeholder="Transaction ID from the MTN receipt" />
+        </label>
+        <label className="form-group service-fee-upload-label">
+          <span>Attach payment screenshot (optional if you enter the ID)</span>
+          <input type="file" accept="image/*" onChange={handleProofChange} />
+        </label>
+        {proofImage && <img className="service-fee-proof-preview" src={proofImage} alt="Payment screenshot preview" />}
+        {proofError && <p className="feedback-error" role="alert">{proofError}</p>}
+        {error && <p className="feedback-error" role="alert">{error}</p>}
+        <button className="btn btn-secondary btn-full" type="submit" disabled={submitting || (!reference.trim() && !proofImage)}>
+          {submitting ? "Submitting…" : "Submit payment proof for review"}
+        </button>
+      </form>
+    </section>
   );
 }
 

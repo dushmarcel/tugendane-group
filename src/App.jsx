@@ -88,6 +88,7 @@ export default function App() {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState("");
+  const [notificationAvatar, setNotificationAvatar] = useState("");
   const [adminUsers, setAdminUsers] = useState([]);
   const [adminUsersLoading, setAdminUsersLoading] = useState(true);
   const [adminError, setAdminError] = useState("");
@@ -132,6 +133,11 @@ export default function App() {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatDraft, setChatDraft] = useState("");
   const chatBooking = bookings.find((b) => b.firestoreId === activeChatBooking?.firestoreId) || activeChatBooking;
+
+  function showAppNotification(message, avatar = "") {
+    setNotificationAvatar(avatar || "");
+    setNotificationMessage(message);
+  }
 
   // Driver Post Form State
   const [driverPostForm, setDriverPostForm] = useState({
@@ -194,9 +200,12 @@ export default function App() {
       snapshot.docChanges().filter((change) => change.type === "added").forEach((change) => {
         const notification = change.doc.data();
         if (notification.read !== false) return;
-        setNotificationMessage(`${notification.title || "Tugendane Alert"}: ${notification.body || ""}`);
+        showAppNotification(`${notification.title || "Tugendane Alert"}: ${notification.body || ""}`, notification.data?.passengerProfilePicture);
         if ("Notification" in window && Notification.permission === "granted") {
-          new Notification(notification.title || "Tugendane Alert", { body: notification.body || "" });
+          new Notification(notification.title || "Tugendane Alert", {
+            body: notification.body || "",
+            ...(notification.data?.passengerProfilePicture ? { icon: notification.data.passengerProfilePicture } : {}),
+          });
         }
         updateDoc(doc(db, "users", currentUser.uid, "notifications", change.doc.id), { read: true })
           .catch((error) => console.warn("Could not mark notification as read:", error));
@@ -279,7 +288,7 @@ export default function App() {
     const cleanup = setupNotificationListeners((notification) => {
       const title = notification.title || "Tugendane Alert";
       const body = notification.body || "";
-      setNotificationMessage(`${title}: ${body}`);
+      showAppNotification(`${title}: ${body}`, notification.data?.passengerProfilePicture);
     });
     return cleanup;
   }, [currentUser]);
@@ -334,7 +343,7 @@ export default function App() {
         const booking = bookingDoc.data();
         const previousStatus = knownBookingStates.current.get(bookingDoc.id);
         if (previousStatus && previousStatus !== booking.status && booking.status === "Confirmed") {
-          setNotificationMessage(`Your ride from ${booking.from} to ${booking.to} was approved. Chat is now available.`);
+          showAppNotification(`Your ride from ${booking.from} to ${booking.to} was approved. Chat is now available.`);
         }
         knownBookingStates.current.set(bookingDoc.id, booking.status);
       });
@@ -348,7 +357,7 @@ export default function App() {
       snapshot.docs.forEach((bookingDoc) => {
         const booking = bookingDoc.data();
         if (driverBookingsInitialized.current && !knownBookingStates.current.has(bookingDoc.id) && booking.status === "Pending") {
-          setNotificationMessage(`New booking request: ${booking.from} to ${booking.to}.`);
+          showAppNotification(`New booking from ${booking.passengerName || "Passenger"}: ${booking.from} to ${booking.to}.`, booking.passengerProfilePicture);
         }
         knownBookingStates.current.set(bookingDoc.id, booking.status);
       });
@@ -378,7 +387,7 @@ export default function App() {
         });
         if (freshRide) {
           const ride = freshRide.data();
-          setNotificationMessage(`A new ride is available: ${ride.from} to ${ride.to}.`);
+          showAppNotification(`A new ride is available: ${ride.from} to ${ride.to}.`);
         }
       }
       knownActiveRideIds.current = ids;
@@ -388,7 +397,10 @@ export default function App() {
   // Dismiss notification after 6.5s
   useEffect(() => {
     if (!notificationMessage) return undefined;
-    const timer = setTimeout(() => setNotificationMessage(""), 6500);
+    const timer = setTimeout(() => {
+      setNotificationMessage("");
+      setNotificationAvatar("");
+    }, 6500);
     return () => clearTimeout(timer);
   }, [notificationMessage]);
 
@@ -482,6 +494,7 @@ export default function App() {
         uid: currentUser.uid,
         fullName: profileDisplayName,
         phone: userProfile?.phone || "",
+        profilePicture: userProfile?.profilePicture || "",
       };
 
       await bookRide({
@@ -498,7 +511,11 @@ export default function App() {
           recipientUserId: selectedRideForBooking.driverId,
           title: "New Seat Booking Request 🚘",
           body: `${passenger.fullName} booked ${bookingSeatsCount} seat(s) for ${selectedRideForBooking.from} to ${selectedRideForBooking.to}`,
-          data: { rideId: selectedRideForBooking.id },
+          data: {
+            rideId: selectedRideForBooking.id,
+            passengerName: passenger.fullName,
+            passengerProfilePicture: passenger.profilePicture,
+          },
         });
       }
 
@@ -633,7 +650,7 @@ export default function App() {
       setShowDriverSetupModal(false);
       setCurrentTab("home");
       setDriverRulesAccepted(false);
-      setNotificationMessage(lang === "en" ? "Thank you for becoming part of Tugendane Rides. Your driver account is ready." : "Urakoze kuba umwe mu bashoferi ba Tugendane Rides. Konti yawe y’umushoferi irakora.");
+      showAppNotification(lang === "en" ? "Thank you for becoming part of Tugendane Rides. Your driver account is ready." : "Urakoze kuba umwe mu bashoferi ba Tugendane Rides. Konti yawe y’umushoferi irakora.");
     } catch (error) {
       alert(`Driver registration could not be saved: ${error.message}`);
     }
@@ -720,16 +737,18 @@ export default function App() {
     }
   }
 
-  async function submitServiceFeeReference(booking, reference) {
-    const normalizedReference = reference.trim();
-    if (!currentUser || !booking?.firestoreId || normalizedReference.length < 4) {
-      setFeeSubmitError("Enter the MTN transaction reference from your payment receipt.");
+  async function submitServiceFeeReference(booking, submission) {
+    const normalizedReference = submission.reference.trim();
+    const proofImage = submission.proofImage || "";
+    if (!currentUser || !booking?.firestoreId || (!normalizedReference && !proofImage)) {
+      setFeeSubmitError("Enter the transaction ID or attach the payment screenshot.");
       return false;
     }
     try {
       await updateDoc(doc(db, "bookings", booking.firestoreId), {
         serviceFeeStatus: "review_pending",
         serviceFeeReference: normalizedReference,
+        serviceFeeProofImage: proofImage,
         serviceFeeSubmittedAt: serverTimestamp(),
       });
       setFeeSubmitError("");
@@ -848,7 +867,7 @@ export default function App() {
       const syncedBooking = { ...chatBooking, firestoreId, status: existing.exists() ? existing.data().status : "Pending" };
       setActiveChatBooking(syncedBooking);
       setBookings((current) => [syncedBooking, ...current.filter((booking) => booking.id !== syncedBooking.id)]);
-      setNotificationMessage("Booking synced. The driver needs to approve it before chat is available.");
+      showAppNotification("Booking synced. The driver needs to approve it before chat is available.");
     } catch (error) {
       alert(`This booking could not sync: ${error.message}. Check your connection and Firebase rules, then try again.`);
     }
@@ -1110,8 +1129,11 @@ export default function App() {
       <main className={`app-main ${currentTab === "profile" ? "app-main-profile" : ""}`}>
         {notificationMessage && (
           <div className="app-notification" role="status" aria-live="polite">
-            <span>🔔 {notificationMessage}</span>
-            <button type="button" aria-label="Dismiss notification" onClick={() => setNotificationMessage("")}>
+            <div className="app-notification-content">
+              {notificationAvatar && <img className="app-notification-avatar" src={notificationAvatar} alt="Passenger profile" />}
+              <span>🔔 {notificationMessage}</span>
+            </div>
+            <button type="button" aria-label="Dismiss notification" onClick={() => { setNotificationMessage(""); setNotificationAvatar(""); }}>
               ×
             </button>
           </div>
@@ -1120,23 +1142,33 @@ export default function App() {
         {currentTab === "home" && (
           <section className="dashboard-hero">
             <div className="hero-text">
-              <div style={{ fontSize: "12px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px", opacity: 0.9, marginBottom: "4px" }}>
-                Tugendane Group Mobility
-              </div>
-              <h1>
-                {role === "passenger"
-                  ? `Hi, ${profileDisplayName}. Where do you want to go?`
-                  : `${t.driverDashTitle} 🚗`}
-              </h1>
-              <p>
-                {role === "passenger" ? "Go everywhere with Tujyane." : t.driverDashSubtitle}
-              </p>
+              <span className="hero-eyebrow">TUGENDANE RIDES</span>
+              {role === "passenger" ? (
+                <>
+                  <h1>Hi, {profileDisplayName}</h1>
+                  <p className="hero-destination-prompt">Where do you want to go?</p>
+                  <span className="hero-tagline">Go everywhere with Tujyane.</span>
+                </>
+              ) : (
+                <>
+                  <h1>{t.driverDashTitle}</h1>
+                  <p className="hero-destination-prompt">{t.driverDashSubtitle}</p>
+                </>
+              )}
             </div>
-            <div className="hero-badges">
-              <div className="hero-pill">✅ ID & License Verified</div>
-              <div className="hero-pill">⚡ Direct Booking</div>
-              <div className="hero-pill">💳 MTN MoMo / eKash</div>
-            </div>
+            <button
+              className="hero-profile-button"
+              type="button"
+              onClick={() => setCurrentTab("profile")}
+              aria-label="Open profile"
+            >
+              {userProfile?.profilePicture ? (
+                <img src={userProfile.profilePicture} alt="" />
+              ) : (
+                <span>{profileDisplayName.slice(0, 1).toUpperCase()}</span>
+              )}
+              <small>Profile</small>
+            </button>
           </section>
         )}
 

@@ -118,7 +118,7 @@ export default function BookingModal({
             </div>
 
             <p className="booking-payment-note">
-              The 10% Tugendane service fee is due after the driver accepts. Pay it to MTN MoMo code <strong>744405</strong>; driver details and chat open after an admin verifies your transaction reference. Pay the full ticket price to the driver when you meet.
+              The 15% Tugendane booking fee is due after the driver accepts. Pay it to MTN MoMo code <strong>744405</strong>; driver details and chat open after an admin verifies your payment proof. Pay the full ticket price to the driver when you meet.
             </p>
 
             <button className="btn btn-primary btn-full" onClick={handleConfirmBooking}>

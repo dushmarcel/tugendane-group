@@ -104,8 +104,11 @@ service cloud.firestore {
           && resource.data.status == "Confirmed"
           && request.resource.data.serviceFeeStatus == "review_pending"
           && request.resource.data.serviceFeeReference is string
-          && request.resource.data.serviceFeeReference.size() >= 4
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["serviceFeeStatus", "serviceFeeReference", "serviceFeeSubmittedAt"]));
+          && (request.resource.data.serviceFeeReference.size() == 0 || request.resource.data.serviceFeeReference.size() >= 4)
+          && request.resource.data.serviceFeeProofImage is string
+          && request.resource.data.serviceFeeProofImage.size() <= 400000
+          && (request.resource.data.serviceFeeReference.size() >= 4 || request.resource.data.serviceFeeProofImage.size() > 0)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["serviceFeeStatus", "serviceFeeReference", "serviceFeeProofImage", "serviceFeeSubmittedAt"]));
 
       match /messages/{messageId} {
         function booking() {

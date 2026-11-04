@@ -351,7 +351,7 @@ export default function DriverDashboard({
             }}
           >
             💰 <strong>Earnings:</strong> The ticket total for 3 seats at {driverPostForm.price.toLocaleString()} RWF is{" "}
-            {(driverPostForm.price * 3).toLocaleString()} RWF, paid to you by passengers when you meet. Passengers pay Tugendane a separate 10% service fee after you accept.
+            {(driverPostForm.price * 3).toLocaleString()} RWF, paid to you by passengers when you meet. Passengers pay Tugendane a separate 15% booking fee after you accept.
           </div>
 
           <button type="submit" className="btn btn-primary btn-full">

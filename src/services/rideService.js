@@ -12,7 +12,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "../firebase";
-import { PLATFORM_COMMISSION_PERCENT } from "./rwandaRoutes";
+import { calculateServiceFee } from "./rwandaRoutes";
 
 const STORAGE_KEY_RIDES = "tugendane_rides_v1";
 const STORAGE_KEY_BOOKINGS = "tugendane_bookings_v1";
@@ -233,11 +233,12 @@ export async function bookRide({ rideId, passenger, seatsCount, pickupPoint, not
     if (currentRide.driverId === passenger.uid) throw new Error("You cannot book your own ride.");
     const remaining = currentRide.availableSeats - seatsCount;
     const subtotal = currentRide.price * seatsCount;
-    const platformFee = Math.round(subtotal * (PLATFORM_COMMISSION_PERCENT / 100));
+    const platformFee = calculateServiceFee(subtotal);
     const bookingData = {
       id: bookingRef.id, rideId: rideRef.id, driverId: currentRide.driverId,
       driverName: currentRide.driverName, driverPhone: currentRide.driverPhone,
       passengerId: passenger.uid, passengerName: passenger.fullName || "Passenger",
+      passengerProfilePicture: passenger.profilePicture || "",
       passengerPhone: passenger.phone || "", from: currentRide.from, to: currentRide.to,
       pickupLocation: pickupPoint || currentRide.pickupLocation,
       pickupLatitude: currentRide.pickupLatitude ?? null, pickupLongitude: currentRide.pickupLongitude ?? null,
