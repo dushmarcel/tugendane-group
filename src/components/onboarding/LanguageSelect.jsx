@@ -3,7 +3,6 @@ import { useState } from "react";
 const LANGUAGES = [
   { code: "en", label: "English", native: "English", flag: "🇬🇧" },
   { code: "rw", label: "Kinyarwanda", native: "Ikinyarwanda", flag: "🇷🇼" },
-  { code: "fr", label: "French", native: "Français", flag: "🇫🇷" },
 ];
 
 export default function LanguageSelect({ onSelect }) {
