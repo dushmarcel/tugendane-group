@@ -203,12 +203,15 @@ function ServiceFeePrompt({ booking, onSubmitServiceFee, error, lang }) {
   );
 }
 
+const SUPPORT_PHONE = "0784411121";
+
 export default function TripsView({
   bookings,
   role,
   setCurrentTab,
   getShareTripMessage,
   openTripChat,
+  openCall,
   lang,
   t,
   onSubmitServiceFee,
@@ -337,6 +340,44 @@ export default function TripsView({
               )}
 
               <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                {/* In-app Chat */}
+                {booking.status === "Confirmed" && booking.serviceFeeStatus === "verified" && (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary"
+                    onClick={() => openTripChat(booking)}
+                  >
+                    {role === "driver" ? "Message Passenger" : "Message Driver"}
+                  </button>
+                )}
+
+                {/* In-app VoIP Call */}
+                {booking.status === "Confirmed" && booking.serviceFeeStatus === "verified" && (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-call"
+                    onClick={() => openCall(booking)}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ display: "inline-block", verticalAlign: "-1px", marginRight: "4px" }}>
+                      <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
+                    </svg>
+                    {role === "driver" ? "Call Passenger" : "Call Driver"}
+                  </button>
+                )}
+
+                {/* Call Support fallback */}
+                <a
+                  href={`tel:${SUPPORT_PHONE}`}
+                  className="btn btn-sm btn-secondary"
+                  style={{ fontSize: "12px" }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style={{ display: "inline-block", verticalAlign: "-1px", marginRight: "4px" }}>
+                    <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
+                  </svg>
+                  Call Support
+                </a>
+
+                {/* Share trip details */}
                 {role !== "driver" && <a
                   href={getShareTripMessage({
                     driverName: booking.driverName,
@@ -353,47 +394,6 @@ export default function TripsView({
                 >
                   {t.shareTripBtn}
                 </a>}
-
-                {role !== "driver" && booking.serviceFeeStatus === "verified" && booking.driverPhone && (
-                  <a
-                    href={`https://wa.me/${(booking.driverPhone || "").replace(/[^0-9]/g, "")}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn btn-sm btn-whatsapp"
-                  >
-                    WhatsApp Driver
-                  </a>
-                )}
-                {role === "driver" && booking.passengerPhone && (
-                  <a
-                    href={`https://wa.me/${booking.passengerPhone.replace(/[^0-9]/g, "")}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn btn-sm btn-whatsapp"
-                  >
-                    WhatsApp Passenger
-                  </a>
-                )}
-                {booking.status === "Confirmed" && booking.serviceFeeStatus === "verified" && (
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-primary"
-                    onClick={() => openTripChat(booking)}
-                  >
-                    {role === "driver" ? "Message passenger" : "Message driver"}
-                  </button>
-                )}
-
-                {role !== "driver" && booking.serviceFeeStatus === "verified" && booking.driverPhone && (
-                  <a href={`tel:${booking.driverPhone}`} className="btn btn-sm btn-call">
-                    Call Driver
-                  </a>
-                )}
-                {role === "driver" && booking.passengerPhone && (
-                  <a href={`tel:${booking.passengerPhone}`} className="btn btn-sm btn-call">
-                    Call Passenger
-                  </a>
-                )}
               </div>
             </div>
           ))}

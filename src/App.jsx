@@ -60,6 +60,7 @@ import DriverSetupModal from "./modals/DriverSetupModal";
 import TripChatModal from "./modals/TripChatModal";
 import SosModal from "./modals/SosModal";
 import PrivacyModal from "./modals/PrivacyModal";
+import CallModal from "./modals/CallModal";
 
 import "./App.css";
 
@@ -153,6 +154,9 @@ export default function App() {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatDraft, setChatDraft] = useState("");
   const chatBooking = bookings.find((b) => b.firestoreId === activeChatBooking?.firestoreId) || activeChatBooking;
+
+  // In-app VoIP call state
+  const [activeCallBooking, setActiveCallBooking] = useState(null);
 
   function showAppNotification(message, avatar = "") {
     setNotificationAvatar(avatar || "");
@@ -476,6 +480,10 @@ export default function App() {
   function openTripChat(booking) {
     setChatMessages([]);
     setActiveChatBooking(booking);
+  }
+
+  function openCall(booking) {
+    setActiveCallBooking(booking);
   }
 
   const filteredRides = rides.filter((ride) => {
@@ -931,16 +939,6 @@ export default function App() {
     }
   }
 
-  function getWhatsAppLink(phone, ride) {
-    const cleanPhone = (phone || "").replace(/[^0-9]/g, "");
-    const msg = encodeURIComponent(
-      lang === "en"
-        ? `Hello! I saw your Tugendane empty seat trip from ${ride.from} to ${ride.to} on ${ride.departureDate} at ${ride.departureTime}. Are seats still available?`
-        : `Muraho! Nabonye urugendo rwawe kuri Tugendane Rides ruva ${ride.from} rugana ${ride.to} kuwa ${ride.departureDate} saa ${ride.departureTime}. Haba hakirimo intebe?`
-    );
-    return `https://wa.me/${cleanPhone}?text=${msg}`;
-  }
-
   function getShareTripMessage(ride) {
     const text =
       lang === "en"
@@ -1232,7 +1230,6 @@ export default function App() {
             loadingRides={loadingRides}
             setSelectedRideForBooking={setSelectedRideForBooking}
             setBookingSeatsCount={setBookingSeatsCount}
-            getWhatsAppLink={getWhatsAppLink}
             handleSelectRouteShortcut={handleSelectRouteShortcut}
             lang={lang}
             t={t}
@@ -1256,6 +1253,7 @@ export default function App() {
             setCurrentTab={setCurrentTab}
             getShareTripMessage={getShareTripMessage}
             openTripChat={openTripChat}
+            openCall={openCall}
             lang={lang}
             t={t}
             onSubmitServiceFee={submitServiceFeeReference}
@@ -1276,6 +1274,7 @@ export default function App() {
             handlePublishRide={handlePublishRide}
             handleBookingStatusUpdate={handleBookingStatusUpdate}
             openTripChat={openTripChat}
+            openCall={openCall}
             lang={lang}
             t={t}
           />
@@ -1350,6 +1349,13 @@ export default function App() {
         isOpen={showPrivacyModal}
         onClose={() => setShowPrivacyModal(false)}
         lang={lang}
+      />
+
+      <CallModal
+        booking={activeCallBooking}
+        currentUser={currentUser}
+        userProfile={userProfile}
+        onClose={() => setActiveCallBooking(null)}
       />
     </div>
   );

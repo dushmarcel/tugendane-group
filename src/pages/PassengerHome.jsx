@@ -28,7 +28,6 @@ export default function PassengerHome({
   loadingRides,
   setSelectedRideForBooking,
   setBookingSeatsCount,
-  getWhatsAppLink,
   handleSelectRouteShortcut,
   lang,
   t,
@@ -225,7 +224,6 @@ export default function PassengerHome({
                 setSelectedRideForBooking(r);
                 setBookingSeatsCount(1);
               }}
-              getWhatsAppLink={getWhatsAppLink}
               lang={lang}
               t={t}
             />

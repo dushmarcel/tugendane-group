@@ -81,7 +81,11 @@ export default function AdminDashboard({
               {adminFeeBookings.map((booking) => (
                 <article className="admin-review-row" key={booking.firestoreId}>
                   <div>
-                    <strong>{booking.passengerName || "Passenger"} · {booking.from} → {booking.to}</strong>
+                    <strong>
+                      {booking.passengerName || "Passenger"}
+                      {booking.passengerPhone ? ` (${booking.passengerPhone})` : ""}
+                      {booking.driverPhone ? ` | Driver: ${booking.driverPhone}` : ""} · {booking.from} → {booking.to}
+                    </strong>
                     <span>{calculateServiceFee(booking.subtotal || booking.totalPrice).toLocaleString()} RWF · MTN TxID: <b style={{ color: "var(--primary)" }}>{booking.serviceFeeReference || "Not provided"}</b></span>
                     {booking.serviceFeeProofImage && (
                       <a className="admin-proof-link" href={booking.serviceFeeProofImage} target="_blank" rel="noreferrer">

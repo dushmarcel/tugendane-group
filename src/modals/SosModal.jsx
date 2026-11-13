@@ -33,6 +33,11 @@ export default function SosModal({ isOpen, onClose, t }) {
             <span>{t.emergencyTraffic}</span>
             <span>Call 113 &rarr;</span>
           </a>
+
+          <a href="tel:0784411121" className="sos-call-btn" style={{ background: "var(--accent)" }}>
+            <span>Tugendane Support</span>
+            <span>Call 0784411121 &rarr;</span>
+          </a>
         </div>
 
         <div style={{ background: "var(--light-bg)", padding: "16px", borderRadius: "var(--radius-md)", textAlign: "left", fontSize: "13px", color: "var(--dark-muted)", marginBottom: "16px" }}>

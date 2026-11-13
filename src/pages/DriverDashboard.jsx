@@ -1,5 +1,7 @@
 import { RWANDA_CITIES, getSuggestedPrice } from "../services/rwandaRoutes";
 
+const SUPPORT_PHONE = "0784411121";
+
 export default function DriverDashboard({
   rides,
   bookings,
@@ -11,6 +13,7 @@ export default function DriverDashboard({
   handlePublishRide,
   handleBookingStatusUpdate,
   openTripChat,
+  openCall,
   lang,
   t,
 }) {
@@ -458,24 +461,31 @@ export default function DriverDashboard({
                     className="btn btn-sm btn-primary"
                     onClick={() => openTripChat(booking)}
                   >
-                    Message passenger
+                    Message Passenger
                   </button>
                 )}
-                {booking.passengerPhone && (
-                  <a
-                    href={`https://wa.me/${(booking.passengerPhone || "").replace(/[^0-9]/g, "")}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn btn-sm btn-whatsapp"
+                {booking.status === "Confirmed" && (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-call"
+                    onClick={() => openCall(booking)}
                   >
-                    WhatsApp Passenger
-                  </a>
-                )}
-                {booking.passengerPhone && (
-                  <a href={`tel:${booking.passengerPhone}`} className="btn btn-sm btn-secondary">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style={{ display: "inline-block", verticalAlign: "-1px", marginRight: "4px" }}>
+                      <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
+                    </svg>
                     Call Passenger
-                  </a>
+                  </button>
                 )}
+                <a
+                  href={`tel:${SUPPORT_PHONE}`}
+                  className="btn btn-sm btn-secondary"
+                  style={{ fontSize: "12px" }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style={{ display: "inline-block", verticalAlign: "-1px", marginRight: "4px" }}>
+                    <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
+                  </svg>
+                  Call Support
+                </a>
               </div>
             </div>
           ))}

@@ -1,7 +1,6 @@
 export default function RideCard({
   ride,
   onBook,
-  getWhatsAppLink,
   lang,
   t,
 }) {
@@ -128,28 +127,6 @@ export default function RideCard({
         <button className="btn btn-primary" onClick={() => onBook(ride)}>
           {t.bookSeat}
         </button>
-
-        {ride.driverPhone && (
-          <a
-            href={getWhatsAppLink(ride.driverPhone, ride)}
-            target="_blank"
-            rel="noreferrer"
-            className="btn btn-whatsapp btn-sm"
-            title="Chat with driver on WhatsApp"
-          >
-            {t.whatsAppDriver}
-          </a>
-        )}
-
-        {ride.driverPhone && (
-          <a
-            href={`tel:${ride.driverPhone}`}
-            className="btn btn-secondary btn-sm"
-            title="Call driver directly"
-          >
-            {t.callDriver}
-          </a>
-        )}
       </div>
     </div>
   );
