@@ -1,7 +1,7 @@
 :root {
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: #0f172a;
-  background: #071a35;
+  color: #051F20;
+  background: #051F20;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -26,7 +26,7 @@ body,
 }
 
 html {
-  background: #071a35;
+  background: #051F20;
   overscroll-behavior-y: none;
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;

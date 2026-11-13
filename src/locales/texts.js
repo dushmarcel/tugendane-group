@@ -38,11 +38,11 @@ export const TEXTS = {
     
     // Filters
     filterLabel: "Preferences:",
-    prefWomenOnly: "👩 Women Only",
-    prefNoSmoking: "🚭 No Smoking",
-    prefAC: "❄️ AC Available",
-    prefQuiet: "🤫 Quiet Ride",
-    prefMusic: "🎵 Music Allowed",
+    prefWomenOnly: "Women Only",
+    prefNoSmoking: "No Smoking",
+    prefAC: "AC Available",
+    prefQuiet: "Quiet Ride",
+    prefMusic: "Music Allowed",
     allPreferences: "All Rides",
     
     // Marketplace & Cards
@@ -127,9 +127,31 @@ export const TEXTS = {
     authRequiredToBook: "Please sign in or create an account to book your empty seat.",
     authRequiredToPost: "Please sign in or create an account to post a trip as a driver.",
     driverVehicleRequired: "Please enter your vehicle make/model and plate number before publishing a trip.",
-    rolePassengerLabel: "🎒 Passenger (I want to book seats)",
-    roleDriverLabel: "🚗 Driver (I offer empty car seats)",
+    rolePassengerLabel: "Passenger (I want to book seats)",
+    roleDriverLabel: "Driver (I offer empty car seats)",
     vehicleDetailsTitle: "Driver Vehicle Information",
+
+    // Forgot Password
+    forgotPassword: "Forgot password?",
+    resetPasswordTitle: "Reset Your Password",
+    resetPasswordDesc: "Enter your account email and we'll send you a password reset link.",
+    sendResetLink: "Send Reset Link",
+    resetEmailSent: "Password reset link sent! Check your email inbox.",
+    backToLogin: "Back to Log In",
+
+    // Mobile Money & Automated Payment
+    payWithMomo: "Pay via MTN / Airtel Mobile Money",
+    momoPhonePrompt: "Rwandan Phone Number (MTN / Airtel):",
+    sendMomoPrompt: "Send MoMo PIN Prompt to Phone",
+    momoPromptSent: "MoMo prompt sent! Enter your PIN on your phone to complete payment.",
+    orPayManually: "Or pay manually & upload proof",
+    momoPromptExplanation: "You will receive an instant USSD popup on your phone to enter your PIN and approve the service fee. Trip chat will unlock automatically.",
+    
+    // Account Deletion
+    dangerZone: "Account Management",
+    deleteAccountBtn: "Delete Account & Personal Data",
+    deleteAccountConfirm: "Are you sure you want to delete your account? This action is permanent and deletes all your profile information and active trips.",
+    accountDeletedSuccess: "Your account and personal data have been permanently deleted.",
   },
   
   rw: {
@@ -169,11 +191,11 @@ export const TEXTS = {
     
     // Filters
     filterLabel: "Ibyo wifuza:",
-    prefWomenOnly: "👩 Abagore Gusa",
-    prefNoSmoking: "🚭 Nta Kunywa Itabi",
-    prefAC: "❄️ Imodoka Ifite AC",
-    prefQuiet: "🤫 Urugendo Rutuje",
-    prefMusic: "🎵 Umuziki Wemerwe",
+    prefWomenOnly: "Abagore Gusa",
+    prefNoSmoking: "Nta Kunywa Itabi",
+    prefAC: "Imodoka Ifite AC",
+    prefQuiet: "Urugendo Rutuje",
+    prefMusic: "Umuziki Wemerwe",
     allPreferences: "Ingendo Zose",
     
     // Marketplace & Cards
@@ -258,8 +280,30 @@ export const TEXTS = {
     authRequiredToBook: "Banza winjire cyangwa ufungure konti kugira ngo ufate intebe.",
     authRequiredToPost: "Banza winjire cyangwa ufungure konti kugira ngo utangaze ingendo nk'umushoferi.",
     driverVehicleRequired: "Banza wandikishe ubwoko bw'imodoka na plate mbere yo gutangaza urugendo.",
-    rolePassengerLabel: "🎒 Umugenzi (Nshaka gufata intebe)",
-    roleDriverLabel: "🚗 Umushoferi (Mfite imodoka nshaka gutwara abagenzi)",
+    rolePassengerLabel: "Umugenzi (Nshaka gufata intebe)",
+    roleDriverLabel: "Umushoferi (Mfite imodoka nshaka gutwara abagenzi)",
     vehicleDetailsTitle: "Ibisobanuro by'Imodoka",
+
+    // Forgot Password
+    forgotPassword: "Wibagiwe ijambobanga?",
+    resetPasswordTitle: "Hindura Ijambobanga",
+    resetPasswordDesc: "Shyiramo imeli yawe tugwohereze umurongo wo guhindura ijambobanga.",
+    sendResetLink: "Ohereza Umurongo wo Guhindura",
+    resetEmailSent: "Ubutumwa bwo guhindura ijambobanga bwoherejwe kuri imeli yawe!",
+    backToLogin: "Subira ku Kwinjira",
+
+    // Mobile Money & Automated Payment
+    payWithMomo: "Kwishyura ukoresheje MTN / Airtel Mobile Money",
+    momoPhonePrompt: "Nomero ya Telefoni (MTN / Airtel):",
+    sendMomoPrompt: "Ohereza Ubutumwa bwo Kwemeza PIN kuri Telefoni",
+    momoPromptSent: "Ubutumwa bwoherejwe kuri telefoni! Shyiramo PIN yawe kwemeza.",
+    orPayManually: "Cyangwa wishyure bisanzwe utange gihamya",
+    momoPromptExplanation: "Urahita ubona ubutumwa bwa USSD kuri telefoni yawe busaba PIN yo kwemeza umusanzu wa serivisi. Ubutumwa bw'urugendo buzafunguka ako kanya.",
+
+    // Account Deletion
+    dangerZone: "Gucunga Konti",
+    deleteAccountBtn: "Siba Konti n'Amakuru Yanjye Yose",
+    deleteAccountConfirm: "Uremeza neza ko ushaka gusiba iyi konti? Iki gikorwa ntigisubiraho kandi gisiba amakuru yawe yose n'ingendo zawe.",
+    accountDeletedSuccess: "Konti yawe n'amakuru byasibwe burundu.",
   },
 };

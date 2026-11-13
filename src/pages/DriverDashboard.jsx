@@ -42,7 +42,12 @@ export default function DriverDashboard({
       <div className="search-card" style={{ marginBottom: "32px" }}>
         <div className="search-header">
           <div className="search-title">
-            <span>🚗</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--accent)" }}>
+              <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+              <circle cx="7" cy="17" r="2" />
+              <path d="M9 17h6" />
+              <circle cx="17" cy="17" r="2" />
+            </svg>
             <span>{t.postFormTitle}</span>
           </div>
           <span className="role-badge">Tugendane Driver</span>
@@ -96,7 +101,7 @@ export default function DriverDashboard({
                 style={{ marginTop: 8 }}
                 onClick={pinCurrentPickup}
               >
-                📍 Use my current location as the exact pickup point
+                Use my current location as the exact pickup point
               </button>
               {Number.isFinite(driverPostForm.pickupLatitude) &&
                 Number.isFinite(driverPostForm.pickupLongitude) && (
@@ -187,7 +192,11 @@ export default function DriverDashboard({
                 }
               />
               <div className="suggested-price-notice">
-                <span>💡</span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
                 <span>
                   {t.suggestedPriceLabel}{" "}
                   <strong>
@@ -257,7 +266,7 @@ export default function DriverDashboard({
                     })
                   }
                 />
-                🚭 No Smoking
+                No Smoking
               </label>
 
               <label
@@ -279,7 +288,7 @@ export default function DriverDashboard({
                     })
                   }
                 />
-                👩 Women Only
+                Women Only
               </label>
 
               <label
@@ -301,7 +310,7 @@ export default function DriverDashboard({
                     })
                   }
                 />
-                ❄️ AC Available
+                AC Available
               </label>
 
               <label
@@ -323,7 +332,7 @@ export default function DriverDashboard({
                     })
                   }
                 />
-                🤫 Quiet Trip
+                Quiet Trip
               </label>
             </div>
           </div>
@@ -350,24 +359,29 @@ export default function DriverDashboard({
               color: "var(--dark-muted)",
             }}
           >
-            💰 <strong>Earnings:</strong> The ticket total for 3 seats at {driverPostForm.price.toLocaleString()} RWF is{" "}
+            <strong>Earnings:</strong> The ticket total for 3 seats at {driverPostForm.price.toLocaleString()} RWF is{" "}
             {(driverPostForm.price * 3).toLocaleString()} RWF, paid to you by passengers when you meet. Passengers pay Tugendane a separate 15% booking fee after you accept.
           </div>
 
           <button type="submit" className="btn btn-primary btn-full">
-            🚀 {t.publishRideBtn}
+            {t.publishRideBtn}
           </button>
         </form>
       </div>
 
       {/* PASSENGER REQUESTS LIST */}
       <div className="rides-section-title">
-        <h2>📥 {t.passengerRequests}</h2>
+        <h2>{t.passengerRequests}</h2>
       </div>
 
       {bookings.length === 0 ? (
         <div className="empty-box">
-          <div className="empty-icon">📭</div>
+          <div className="empty-icon">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--dark-muted)" }}>
+              <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
+              <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+            </svg>
+          </div>
           <div className="empty-title">{t.noRequests}</div>
           <p className="empty-subtitle">
             {lang === "en"
@@ -390,7 +404,7 @@ export default function DriverDashboard({
                 <div>
                   <strong style={{ fontSize: "16px" }}>{booking.passengerName}</strong>
                   <div style={{ fontSize: "13px", color: "var(--dark-muted)" }}>
-                    Route: {booking.from} ➔ {booking.to} • {booking.seatsBooked} seat(s)
+                    Route: {booking.from} &rarr; {booking.to} • {booking.seatsBooked} seat(s)
                   </div>
                   <div style={{ fontSize: "12.5px", color: "var(--secondary)", fontWeight: "600" }}>
                     Pickup: {booking.pickupLocation}
@@ -402,7 +416,7 @@ export default function DriverDashboard({
                         rel="noreferrer"
                         href={`https://www.openstreetmap.org/?mlat=${booking.pickupLatitude}&mlon=${booking.pickupLongitude}#map=16/${booking.pickupLatitude}/${booking.pickupLongitude}`}
                       >
-                        📍 Open pickup point
+                        Open pickup point
                       </a>
                     )}
                 </div>
@@ -435,7 +449,7 @@ export default function DriverDashboard({
                       handleBookingStatusUpdate(booking.firestoreId || booking.id, "Confirmed")
                     }
                   >
-                    ✓ {t.accept}
+                    {t.accept}
                   </button>
                 )}
                 {booking.status === "Confirmed" && booking.serviceFeeStatus === "verified" && (
@@ -444,7 +458,7 @@ export default function DriverDashboard({
                     className="btn btn-sm btn-primary"
                     onClick={() => openTripChat(booking)}
                   >
-                    💬 Message passenger
+                    Message passenger
                   </button>
                 )}
                 {booking.passengerPhone && (
@@ -454,12 +468,12 @@ export default function DriverDashboard({
                     rel="noreferrer"
                     className="btn btn-sm btn-whatsapp"
                   >
-                    💬 WhatsApp Passenger
+                    WhatsApp Passenger
                   </a>
                 )}
                 {booking.passengerPhone && (
                   <a href={`tel:${booking.passengerPhone}`} className="btn btn-sm btn-secondary">
-                    📞 Call Passenger
+                    Call Passenger
                   </a>
                 )}
               </div>

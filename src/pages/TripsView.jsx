@@ -1,15 +1,28 @@
 import { useState } from "react";
 import { calculateServiceFee } from "../services/rwandaRoutes";
 
-function ServiceFeePrompt({ booking, onSubmitServiceFee, error }) {
+function extractMtnTxId(raw) {
+  if (!raw) return "";
+  const text = String(raw).trim();
+  if (/^[A-Za-z0-9_-]{6,30}$/.test(text)) return text;
+  const match = text.match(/(?:Transaction\s*Id|TxId|Txn\s*Id|Financial\s*Transaction\s*Id|ID)[\s:]*([A-Za-z0-9_-]{6,25})/i);
+  if (match && match[1]) return match[1];
+  const digits = text.match(/\b\d{8,16}\b/);
+  if (digits && digits[0]) return digits[0];
+  return text;
+}
+
+function ServiceFeePrompt({ booking, onSubmitServiceFee, error, lang }) {
   const [reference, setReference] = useState("");
   const [proofImage, setProofImage] = useState("");
   const [proofError, setProofError] = useState("");
   const [paymentOpened, setPaymentOpened] = useState(false);
+  const [showScreenshotUpload, setShowScreenshotUpload] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
   const ticketAmount = Number(booking.subtotal || booking.totalPrice || 0);
   const feeAmount = calculateServiceFee(ticketAmount);
   const ussdCode = `*182*8*2*744405*${feeAmount}#`;
-  const [submitting, setSubmitting] = useState(false);
 
   async function openMtnPayment() {
     try {
@@ -63,12 +76,13 @@ function ServiceFeePrompt({ booking, onSubmitServiceFee, error }) {
 
   async function submit(event) {
     event.preventDefault();
-    if (!reference.trim() && !proofImage) {
-      setProofError("Enter the transaction ID or attach a payment screenshot.");
+    const cleanRef = extractMtnTxId(reference);
+    if (!cleanRef && !proofImage) {
+      setProofError(lang === "en" ? "Enter your MTN Transaction ID or paste the SMS receipt." : "Shyiramo Transaction ID ya MTN cyangwa ubutumwa wahawe.");
       return;
     }
     setSubmitting(true);
-    const submitted = await onSubmitServiceFee(booking, { reference, proofImage });
+    const submitted = await onSubmitServiceFee(booking, { reference: cleanRef, proofImage });
     if (submitted) {
       setReference("");
       setProofImage("");
@@ -78,34 +92,113 @@ function ServiceFeePrompt({ booking, onSubmitServiceFee, error }) {
   }
 
   if (booking.serviceFeeStatus === "review_pending") {
-    return <div className="service-fee-pending" role="status">Your payment {booking.serviceFeeReference ? `reference ${booking.serviceFeeReference}` : "screenshot"} is being checked. Driver details and chat unlock after review.</div>;
+    return (
+      <div className="service-fee-pending" role="status">
+        Your payment {booking.serviceFeeReference ? `reference ${booking.serviceFeeReference}` : "screenshot"} is being checked. Driver details and chat unlock after review.
+      </div>
+    );
   }
 
   return (
     <section className="service-fee-prompt">
-      <strong>Pay the Tugendane booking fee to connect</strong>
-      <button type="button" className="btn btn-primary btn-full service-fee-pay-button" onClick={openMtnPayment}>
-        📱 Pay 15% ({feeAmount.toLocaleString()} RWF) to book ride
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: "6px" }}>
+        <strong>{lang === "en" ? "Pay Tugendane 15% Booking Fee" : "Ishyura Umusanzu wa 15% wa Tugendane"}</strong>
+        <span style={{ fontSize: "14px", fontWeight: "800", color: "var(--primary)" }}>{feeAmount.toLocaleString()} RWF</span>
+      </div>
+
+      <p style={{ fontSize: "12.5px", color: "var(--dark-muted)", margin: "4px 0 12px", lineHeight: 1.4 }}>
+        {lang === "en"
+          ? "Dial the code to pay the 15% fee via MTN MoMo, then enter the Transaction ID below to unlock Trip Chat and driver details instantly!"
+          : "Kanda hasi wishyure 15% ukoresheje MTN MoMo, maze wandike Transaction ID ngo ubutumwa n'amakuru by'umushoferi bifunguke ako kanya!"}
+      </p>
+
+      {/* 1. One-click Dial/Copy Button */}
+      <button
+        type="button"
+        className="btn btn-primary btn-full service-fee-pay-button"
+        onClick={openMtnPayment}
+        style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "8px", padding: "12px", fontSize: "14px" }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect width="14" height="20" x="5" y="2" rx="2" ry="2" />
+          <path d="M12 18h.01" />
+        </svg>
+        <span>{lang === "en" ? `Dial *182*8*2*744405*${feeAmount}#` : `Kanda *182*8*2*744405*${feeAmount}#`}</span>
       </button>
-      <p className="service-fee-policy">After paying the 15% fee, pay the remaining 85% directly to the driver at the meeting point. If the driver does not show up, contact Tugendane for a refund. If you do not show up, the booking fee is not refunded.</p>
-      <small className="service-fee-code-hint">This copies {ussdCode} and opens your phone dialer with the code ready.</small>
-      {paymentOpened && <p className="service-fee-copy-confirmation" role="status">If the dialer did not open, use the copied code in your phone app.</p>}
-      <form onSubmit={submit} className="service-fee-proof-form">
-        <label className="form-group">
-          <span>MTN transaction ID <em>or</em> payment screenshot</span>
-          <input value={reference} onChange={(event) => setReference(event.target.value)} maxLength={80} placeholder="Transaction ID from the MTN receipt" />
-        </label>
-        <label className="form-group service-fee-upload-label">
-          <span>Attach payment screenshot (optional if you enter the ID)</span>
-          <input type="file" accept="image/*" onChange={handleProofChange} />
-        </label>
-        {proofImage && <img className="service-fee-proof-preview" src={proofImage} alt="Payment screenshot preview" />}
-        {proofError && <p className="feedback-error" role="alert">{proofError}</p>}
-        {error && <p className="feedback-error" role="alert">{error}</p>}
-        <button className="btn btn-secondary btn-full" type="submit" disabled={submitting || (!reference.trim() && !proofImage)}>
-          {submitting ? "Submitting…" : "Submit payment proof for review"}
+
+      <small className="service-fee-code-hint" style={{ display: "block", marginTop: "4px", textAlign: "center" }}>
+        {lang === "en"
+          ? `Tapping copies ${ussdCode} and opens your phone dialer ready to pay.`
+          : `Gukanda hano bihita bikopera ${ussdCode} no gufungura telefoni yawe.`}
+      </small>
+
+      {paymentOpened && (
+        <p className="service-fee-copy-confirmation" role="status" style={{ marginTop: "6px" }}>
+          {lang === "en"
+            ? "Code copied to clipboard! If dialer did not open, paste into your phone keypad."
+            : "Nomero yakopewe! Niba telefoni idahise ifunguka, yandike ahandikirwa nomero."}
+        </p>
+      )}
+
+      {/* 2. Instant Verification Form */}
+      <form onSubmit={submit} className="service-fee-proof-form" style={{ marginTop: "14px", background: "rgba(11, 94, 215, 0.04)", padding: "12px", borderRadius: "var(--radius-sm)", border: "1px solid rgba(11, 94, 215, 0.12)" }}>
+        <div className="form-group" style={{ marginBottom: "8px" }}>
+          <label style={{ fontSize: "12px", fontWeight: "700" }}>
+            {lang === "en" ? "MTN Transaction ID (or paste full SMS receipt):" : "Transaction ID ya MTN (cyangwa kopi y'ubutumwa):"}
+          </label>
+          <input
+            value={reference}
+            onChange={(e) => setReference(extractMtnTxId(e.target.value))}
+            maxLength={120}
+            placeholder={lang === "en" ? "e.g. 1982736452 or paste SMS from MTN" : "urugero: 1982736452 cyangwa ubutumwa bwa MTN"}
+            style={{ fontWeight: "600", fontSize: "13.5px" }}
+          />
+          <small style={{ color: "var(--dark-muted)", fontSize: "11px", display: "block", marginTop: "3px" }}>
+            {lang === "en"
+              ? "Tip: You can paste the whole SMS from MTN and the ID will be extracted automatically."
+              : "Inama: Ushobora gukopera ubutumwa bwose bwa MTN ukabushyiramo ako kanya."}
+          </small>
+        </div>
+
+        {/* Optional Screenshot */}
+        <div style={{ marginBottom: "10px" }}>
+          <button
+            type="button"
+            onClick={() => setShowScreenshotUpload((open) => !open)}
+            style={{ background: "none", border: "none", color: "var(--primary)", fontSize: "11.5px", cursor: "pointer", fontWeight: 600, padding: 0 }}
+          >
+            {showScreenshotUpload
+              ? (lang === "en" ? "▲ Hide screenshot upload" : "▲ Hisha gufata screenshot")
+              : (lang === "en" ? "Attach payment screenshot (optional)" : "Shyiraho screenshot y'ubwishyu (niba ubishaka)")}
+          </button>
+        </div>
+
+        {showScreenshotUpload && (
+          <label className="form-group service-fee-upload-label" style={{ marginBottom: "10px" }}>
+            <span style={{ fontSize: "12px" }}>Upload receipt screenshot</span>
+            <input type="file" accept="image/*" onChange={handleProofChange} />
+          </label>
+        )}
+
+        {proofImage && <img className="service-fee-proof-preview" src={proofImage} alt="Payment screenshot preview" style={{ marginBottom: "10px" }} />}
+        {proofError && <p className="feedback-error" role="alert" style={{ fontSize: "12px", marginBottom: "8px" }}>{proofError}</p>}
+        {error && <p className="feedback-error" role="alert" style={{ fontSize: "12px", marginBottom: "8px" }}>{error}</p>}
+
+        <button
+          className="btn btn-primary btn-full"
+          type="submit"
+          disabled={submitting || (!reference.trim() && !proofImage)}
+          style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "6px", fontWeight: "700" }}
+        >
+          <span>{submitting ? "Verifying..." : (lang === "en" ? "Verify & Unlock Trip Chat Instantly" : "Emeza & Fungura Ubutumwa Ako Kanya")}</span>
         </button>
       </form>
+
+      <p className="service-fee-policy" style={{ marginTop: "10px", fontSize: "11px", color: "var(--dark-muted)", lineHeight: 1.4 }}>
+        {lang === "en"
+          ? "The remaining 85% is paid directly to the driver at meetup. If the driver does not show up, contact Tugendane for assistance."
+          : "85% asigaye ahabwa umushoferi muhuye. Niba umushoferi ataje, menyesha Tugendane bagufashe."}
+      </p>
     </section>
   );
 }
@@ -124,12 +217,17 @@ export default function TripsView({
   return (
     <div>
       <div className="rides-section-title">
-        <h2>🧳 {t.myTrips}</h2>
+        <h2>{t.myTrips}</h2>
       </div>
 
       {bookings.length === 0 ? (
         <div className="empty-box">
-          <div className="empty-icon">🎒</div>
+          <div className="empty-icon">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--dark-muted)" }}>
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+            </svg>
+          </div>
           <div className="empty-title">
             {lang === "en" ? (role === "driver" ? "No passenger bookings yet" : "No booked trips yet") : "Nta ngendo uratunganya"}
           </div>
@@ -156,10 +254,10 @@ export default function TripsView({
               >
                 <div>
                   <div style={{ fontSize: "18px", fontWeight: "800", color: "var(--primary)" }}>
-                    {booking.from} ➔ {booking.to}
+                    {booking.from} &rarr; {booking.to}
                   </div>
                   <div style={{ fontSize: "13px", color: "var(--dark-muted)" }}>
-                    📅 {booking.departureDate} at {booking.departureTime}
+                    {booking.departureDate} at {booking.departureTime}
                   </div>
                 </div>
                 <span
@@ -222,7 +320,7 @@ export default function TripsView({
                     rel="noreferrer"
                     href={`https://www.openstreetmap.org/?mlat=${booking.pickupLatitude}&mlon=${booking.pickupLongitude}#map=16/${booking.pickupLatitude}/${booking.pickupLongitude}`}
                   >
-                    📍 View exact pickup point
+                    View exact pickup point
                   </a>
                 )}
               </div>
@@ -231,10 +329,10 @@ export default function TripsView({
                 booking.serviceFeeStatus === "rejected" ? (
                   <>
                     <div className="service-fee-pending" role="alert">The transaction reference could not be verified. Check it against your receipt and submit again.</div>
-                    <ServiceFeePrompt booking={{ ...booking, serviceFeeStatus: "unpaid" }} onSubmitServiceFee={onSubmitServiceFee} error={feeSubmitError} />
+                    <ServiceFeePrompt booking={{ ...booking, serviceFeeStatus: "unpaid" }} onSubmitServiceFee={onSubmitServiceFee} error={feeSubmitError} lang={lang} t={t} />
                   </>
                 ) : (
-                  <ServiceFeePrompt booking={booking} onSubmitServiceFee={onSubmitServiceFee} error={feeSubmitError} />
+                  <ServiceFeePrompt booking={booking} onSubmitServiceFee={onSubmitServiceFee} error={feeSubmitError} lang={lang} t={t} />
                 )
               )}
 
@@ -253,7 +351,7 @@ export default function TripsView({
                   rel="noreferrer"
                   className="btn btn-sm btn-secondary"
                 >
-                  📤 {t.shareTripBtn}
+                  {t.shareTripBtn}
                 </a>}
 
                 {role !== "driver" && booking.serviceFeeStatus === "verified" && booking.driverPhone && (
@@ -263,7 +361,7 @@ export default function TripsView({
                     rel="noreferrer"
                     className="btn btn-sm btn-whatsapp"
                   >
-                    💬 WhatsApp Driver
+                    WhatsApp Driver
                   </a>
                 )}
                 {role === "driver" && booking.passengerPhone && (
@@ -273,7 +371,7 @@ export default function TripsView({
                     rel="noreferrer"
                     className="btn btn-sm btn-whatsapp"
                   >
-                    💬 WhatsApp Passenger
+                    WhatsApp Passenger
                   </a>
                 )}
                 {booking.status === "Confirmed" && booking.serviceFeeStatus === "verified" && (
@@ -282,18 +380,18 @@ export default function TripsView({
                     className="btn btn-sm btn-primary"
                     onClick={() => openTripChat(booking)}
                   >
-                    💬 {role === "driver" ? "Message passenger" : "Message driver"}
+                    {role === "driver" ? "Message passenger" : "Message driver"}
                   </button>
                 )}
 
                 {role !== "driver" && booking.serviceFeeStatus === "verified" && booking.driverPhone && (
                   <a href={`tel:${booking.driverPhone}`} className="btn btn-sm btn-call">
-                    📞 Call Driver
+                    Call Driver
                   </a>
                 )}
                 {role === "driver" && booking.passengerPhone && (
                   <a href={`tel:${booking.passengerPhone}`} className="btn btn-sm btn-call">
-                    📞 Call Passenger
+                    Call Passenger
                   </a>
                 )}
               </div>

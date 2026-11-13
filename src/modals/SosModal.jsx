@@ -5,27 +5,33 @@ export default function SosModal({ isOpen, onClose, t }) {
     <div className="modal-backdrop">
       <div className="modal-window sos-card">
         <button className="modal-close-btn" onClick={onClose} aria-label="Close">
-          ✕
+          &times;
         </button>
 
-        <div className="sos-icon">🚨</div>
+        <div className="sos-icon">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+        </div>
         <div className="modal-title">{t.sosTitle}</div>
         <p className="modal-subtitle">{t.sosSubtitle}</p>
 
         <div className="sos-call-buttons">
           <a href="tel:112" className="sos-call-btn sos-police">
-            <span>👮 {t.emergencyPolice}</span>
-            <span>Call 112 ➔</span>
+            <span>{t.emergencyPolice}</span>
+            <span>Call 112 &rarr;</span>
           </a>
 
           <a href="tel:111" className="sos-call-btn sos-ambulance">
-            <span>🚑 {t.emergencyAmbulance}</span>
-            <span>Call 111 ➔</span>
+            <span>{t.emergencyAmbulance}</span>
+            <span>Call 111 &rarr;</span>
           </a>
 
-          <a href="tel:113" className="sos-call-btn" style={{ background: "#0284c7" }}>
-            <span>🚦 {t.emergencyTraffic}</span>
-            <span>Call 113 ➔</span>
+          <a href="tel:113" className="sos-call-btn" style={{ background: "var(--primary)" }}>
+            <span>{t.emergencyTraffic}</span>
+            <span>Call 113 &rarr;</span>
           </a>
         </div>
 
@@ -45,7 +51,7 @@ export default function SosModal({ isOpen, onClose, t }) {
           rel="noreferrer"
           className="btn btn-whatsapp btn-full"
         >
-          📤 {t.shareTripBtn}
+          {t.shareTripBtn}
         </a>
       </div>
     </div>

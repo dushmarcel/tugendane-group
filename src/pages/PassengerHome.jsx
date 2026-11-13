@@ -2,6 +2,16 @@ import { RWANDA_CITIES, POPULAR_ROUTES } from "../services/rwandaRoutes";
 import RideCard from "../components/RideCard";
 import RwandaRouteMap from "../components/RwandaRouteMap";
 
+function isUpcoming(departureDate, departureTime = "23:59") {
+  if (!departureDate) return true;
+  try {
+    const dt = new Date(`${departureDate}T${departureTime || "00:00"}`);
+    return Number.isNaN(dt.getTime()) ? true : dt.getTime() >= Date.now();
+  } catch {
+    return true;
+  }
+}
+
 export default function PassengerHome({
   fromCity,
   setFromCity,
@@ -29,11 +39,16 @@ export default function PassengerHome({
       <section className="search-card">
         <div className="search-header">
           <div className="search-title">
-            <span>🚗</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--accent)" }}>
+              <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+              <circle cx="7" cy="17" r="2" />
+              <path d="M9 17h6" />
+              <circle cx="17" cy="17" r="2" />
+            </svg>
             <span>{t.whereGoing}</span>
           </div>
           <div style={{ fontSize: "13px", color: "var(--dark-muted)" }}>
-            {rides.filter((r) => r.status === "active").length}{" "}
+            {rides.filter((r) => r.status === "active" && isUpcoming(r.departureDate, r.departureTime)).length}{" "}
             {lang === "en" ? "available rides across Rwanda" : "ingendo ziboneka mu Rwanda"}
           </div>
         </div>
@@ -141,7 +156,7 @@ export default function PassengerHome({
             onClick={() => handleSelectRouteShortcut(route)}
           >
             <span>{route.from}</span>
-            <span className="quick-route-arrow">➔</span>
+            <span className="quick-route-arrow">&rarr;</span>
             <span>{route.to}</span>
             <span
               style={{
@@ -168,14 +183,24 @@ export default function PassengerHome({
 
       {loadingRides ? (
         <div className="empty-box">
-          <div className="empty-icon">⏳</div>
+          <div className="empty-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: "spin 2s linear infinite" }}>
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          </div>
           <div className="empty-title">
             {lang === "en" ? "Finding available rides…" : "Turashaka ingendo zihari…"}
           </div>
         </div>
       ) : filteredRides.length === 0 ? (
         <div className="empty-box">
-          <div className="empty-icon">🚗</div>
+          <div className="empty-icon">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--dark-muted)" }}>
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </div>
           <div className="empty-title">{t.noRidesFound}</div>
           <p className="empty-subtitle">{t.noRidesTip}</p>
           <button

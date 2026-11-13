@@ -81,7 +81,7 @@ export default function TripChatModal({
           aria-label="Close chat"
           onClick={onClose}
         >
-          ✕
+          &times;
         </button>
         <h2 id="trip-chat-title">
           Trip chat · {chatBooking.from} → {chatBooking.to}
@@ -177,9 +177,9 @@ export default function TripChatModal({
 
                 {contextMenuId === message.id && (
                   <div className="chat-context-menu" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={() => handleReply(message)}>↩ Reply</button>
-                    <button onClick={() => startEdit(message)}>✏️ Edit</button>
-                    <button onClick={() => handleDelete(message.id)} className="chat-delete-btn">🗑 Delete</button>
+                    <button onClick={() => handleReply(message)}>Reply</button>
+                    <button onClick={() => startEdit(message)}>Edit</button>
+                    <button onClick={() => handleDelete(message.id)} className="chat-delete-btn">Delete</button>
                   </div>
                 )}
               </div>
@@ -197,7 +197,7 @@ export default function TripChatModal({
               <span className="chat-reply-bar-name">Replying to {getFirstName(replyTo.senderName)}</span>
               <span className="chat-reply-bar-text">{replyTo.text?.substring(0, 50)}{replyTo.text?.length > 50 ? "…" : ""}</span>
             </div>
-            <button type="button" className="chat-reply-bar-close" onClick={cancelReply}>✕</button>
+            <button type="button" className="chat-reply-bar-close" onClick={cancelReply}>&times;</button>
           </div>
         )}
 

@@ -37,6 +37,7 @@ service cloud.firestore {
           && request.resource.data.plate is string && request.resource.data.plate.size() > 0
           && request.resource.data.drivingLicense is string && request.resource.data.drivingLicense.size() > 0
         ) || (request.resource.data.role == "passenger" && resource.data.role == "driver")));
+      allow delete: if request.auth != null && (request.auth.uid == userId || isAdmin());
     }
 
     // Rides Collection (Marketplace)
@@ -102,13 +103,15 @@ service cloud.firestore {
         || (request.auth != null && isActiveAccount(request.auth.uid)
           && resource.data.passengerId == request.auth.uid
           && resource.data.status == "Confirmed"
-          && request.resource.data.serviceFeeStatus == "review_pending"
-          && request.resource.data.serviceFeeReference is string
-          && (request.resource.data.serviceFeeReference.size() == 0 || request.resource.data.serviceFeeReference.size() >= 4)
-          && request.resource.data.serviceFeeProofImage is string
-          && request.resource.data.serviceFeeProofImage.size() <= 400000
-          && (request.resource.data.serviceFeeReference.size() >= 4 || request.resource.data.serviceFeeProofImage.size() > 0)
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["serviceFeeStatus", "serviceFeeReference", "serviceFeeProofImage", "serviceFeeSubmittedAt"]));
+          && request.resource.data.serviceFeeStatus in ["verified", "review_pending", "payment_pending"]
+          && (!('serviceFeeReference' in request.resource.data) || (request.resource.data.serviceFeeReference is string && (request.resource.data.serviceFeeReference.size() == 0 || request.resource.data.serviceFeeReference.size() >= 4)))
+          && (!('serviceFeeProofImage' in request.resource.data) || (request.resource.data.serviceFeeProofImage is string && request.resource.data.serviceFeeProofImage.size() <= 400000))
+          && request.resource.data.diff(resource.data).affectedKeys().hasAny(["serviceFeeStatus", "serviceFeeReference", "serviceFeeProofImage", "serviceFeeSubmittedAt", "paymentStatus", "serviceFeePaypackRef"]))
+        || (request.auth != null && isActiveAccount(request.auth.uid)
+          && resource.data.passengerId == request.auth.uid
+          && resource.data.status == "Pending"
+          && request.resource.data.status == "Cancelled"
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status"]));
 
       match /messages/{messageId} {
         function booking() {
@@ -175,7 +178,7 @@ service cloud.firestore {
         return request.resource.data.data is map
           && request.resource.data.data.keys().hasAny(["bookingId"])
           && request.resource.data.data.bookingId is string
-          && get(/databases/$(database)/documents/bookings/$(request.resource.data.data.bookingId)).data.status == "Confirmed"
+          && get(/databases/$(database)/documents/bookings/$(request.resource.data.data.bookingId)).data.status in ["Confirmed", "Declined", "Pending"]
           && (get(/databases/$(database)/documents/bookings/$(request.resource.data.data.bookingId)).data.passengerId == userId
             || get(/databases/$(database)/documents/bookings/$(request.resource.data.data.bookingId)).data.driverId == userId)
           && (get(/databases/$(database)/documents/bookings/$(request.resource.data.data.bookingId)).data.passengerId == request.auth.uid

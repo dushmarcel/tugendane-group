@@ -1,8 +1,8 @@
 import { useState } from "react";
 
 const LANGUAGES = [
-  { code: "en", label: "English", native: "English", flag: "🇬🇧" },
-  { code: "rw", label: "Kinyarwanda", native: "Ikinyarwanda", flag: "🇷🇼" },
+  { code: "en", label: "English", native: "English", tag: "EN" },
+  { code: "rw", label: "Kinyarwanda", native: "Ikinyarwanda", tag: "RW" },
 ];
 
 export default function LanguageSelect({ onSelect }) {
@@ -30,7 +30,7 @@ export default function LanguageSelect({ onSelect }) {
         {/* Language picker */}
         <div className="lang-select-card">
           <p className="lang-select-prompt">
-            🌍 Choose your language / Hitamo ururimi
+            Choose your language / Hitamo ururimi
           </p>
           <div className="lang-select-options">
             {LANGUAGES.map((lang) => (
@@ -40,10 +40,10 @@ export default function LanguageSelect({ onSelect }) {
                 className={`lang-option-btn ${selected === lang.code ? "active" : ""}`}
                 onClick={() => setSelected(lang.code)}
               >
-                <span className="lang-flag">{lang.flag}</span>
+                <span className="lang-tag-badge">{lang.tag}</span>
                 <span className="lang-native">{lang.native}</span>
                 {selected === lang.code && (
-                  <span className="lang-check">✓</span>
+                  <span className="lang-check">&#10003;</span>
                 )}
               </button>
             ))}
@@ -54,7 +54,7 @@ export default function LanguageSelect({ onSelect }) {
             className="btn btn-primary lang-continue-btn"
             onClick={() => onSelect(selected)}
           >
-            Continue / Komeza ➔
+            Continue / Komeza &rarr;
           </button>
         </div>
       </div>

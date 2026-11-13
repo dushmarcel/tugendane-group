@@ -27,12 +27,12 @@ export default function BookingModal({
           onClick={() => setSelectedRideForBooking(null)}
           aria-label="Close"
         >
-          ✕
+          &times;
         </button>
 
         <div className="modal-title">{t.modalBookTitle}</div>
         <div className="modal-subtitle">
-          {selectedRideForBooking.from} ➔ {selectedRideForBooking.to} ({selectedRideForBooking.departureDate} at {selectedRideForBooking.departureTime})
+          {selectedRideForBooking.from} &rarr; {selectedRideForBooking.to} ({selectedRideForBooking.departureDate} at {selectedRideForBooking.departureTime})
         </div>
 
         {bookingSuccessMsg ? (

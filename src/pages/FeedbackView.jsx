@@ -78,8 +78,16 @@ export default function FeedbackView({ bookings, submitDriverRating, submitGener
               <fieldset className="feedback-rating-picker">
                 <legend>Your rating</legend>
                 {[1, 2, 3, 4, 5].map((value) => (
-                  <button key={value} type="button" aria-pressed={rating === value} onClick={() => setRating(value)}>
-                    {value <= rating ? "★" : "☆"}
+                  <button key={value} type="button" aria-pressed={rating === value} onClick={() => setRating(value)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {value <= rating ? (
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" strokeWidth="1.5">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                      </svg>
+                    ) : (
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                      </svg>
+                    )}
                   </button>
                 ))}
                 <span>{rating} / 5</span>

@@ -65,6 +65,17 @@ import "./App.css";
 
 const DEFAULT_DEPARTURE_DATE = new Date(Date.now() + 86400000).toISOString().split("T")[0];
 
+function isRideUpcoming(departureDate, departureTime = "23:59") {
+  if (!departureDate) return true;
+  try {
+    const rideDateTime = new Date(`${departureDate}T${departureTime || "00:00"}`);
+    if (Number.isNaN(rideDateTime.getTime())) return true;
+    return rideDateTime.getTime() >= Date.now();
+  } catch {
+    return true;
+  }
+}
+
 function uniqueBookingRecords(records) {
   const unique = new Map();
   records.forEach((booking, index) => {
@@ -431,7 +442,7 @@ export default function App() {
 
   useEffect(() => {
     if (currentUser?.email?.toLowerCase() !== ADMIN_EMAIL) return undefined;
-    const pendingFees = query(collection(db, "bookings"), where("serviceFeeStatus", "==", "review_pending"));
+    const pendingFees = query(collection(db, "bookings"), where("serviceFeeStatus", "in", ["verified", "review_pending"]));
     const stopFees = onSnapshot(pendingFees, (snapshot) => {
       setAdminFeeBookings(snapshot.docs.map((item) => ({ firestoreId: item.id, ...item.data() })));
     }, (error) => console.warn("Could not load service fee reviews:", error));
@@ -473,6 +484,7 @@ export default function App() {
     if (searchDate && ride.departureDate !== searchDate) return false;
     if (ride.availableSeats < searchSeats) return false;
     if (activePreference && !ride.preferences?.[activePreference]) return false;
+    if (!isRideUpcoming(ride.departureDate, ride.departureTime)) return false;
     return ride.status === "active";
   });
 
@@ -520,7 +532,7 @@ export default function App() {
       if (selectedRideForBooking.driverId) {
         sendNotificationToUser({
           recipientUserId: selectedRideForBooking.driverId,
-          title: "New Seat Booking Request 🚘",
+          title: "New Seat Booking Request",
           body: `${passenger.fullName} booked ${bookingSeatsCount} seat(s) for ${selectedRideForBooking.from} to ${selectedRideForBooking.to}`,
           data: {
             rideId: selectedRideForBooking.id,
@@ -599,7 +611,7 @@ export default function App() {
       });
 
       setRides([newRide, ...rides]);
-      alert("✅ Ride published successfully! Empty seats are now discoverable on Tugendane Rides.");
+      alert("Ride published successfully! Empty seats are now discoverable on Tugendane Rides.");
       setCurrentTab("home");
     } catch (err) {
       alert("Failed to publish ride: " + err.message);
@@ -630,7 +642,7 @@ export default function App() {
         const isApproved = status === "Confirmed";
         sendNotificationToUser({
           recipientUserId: targetBooking.passengerId,
-          title: isApproved ? "Booking Approved! 🎉" : "Booking Request Update ℹ️",
+          title: isApproved ? "Booking Approved!" : "Booking Request Update",
           body: isApproved
             ? `Your booking request from ${targetBooking.from} to ${targetBooking.to} was confirmed by the driver!`
             : `Your booking request from ${targetBooking.from} to ${targetBooking.to} was declined by the driver.`,
@@ -702,7 +714,7 @@ export default function App() {
       if (recipientId) {
         sendNotificationToUser({
           recipientUserId: recipientId,
-          title: `New message from ${senderName} 💬`,
+          title: `New message from ${senderName}`,
           body: text,
           data: { bookingId: chatBooking.firestoreId },
         });
@@ -752,22 +764,39 @@ export default function App() {
     const normalizedReference = submission.reference.trim();
     const proofImage = submission.proofImage || "";
     if (!currentUser || !booking?.firestoreId || (!normalizedReference && !proofImage)) {
-      setFeeSubmitError("Enter the transaction ID or attach the payment screenshot.");
+      setFeeSubmitError(lang === "en" ? "Enter the MTN transaction ID." : "Shyiramo Transaction ID ya MTN.");
       return false;
     }
     try {
       await updateDoc(doc(db, "bookings", booking.firestoreId), {
-        serviceFeeStatus: "review_pending",
+        serviceFeeStatus: "verified",
+        paymentStatus: "Service fee paid",
         serviceFeeReference: normalizedReference,
         serviceFeeProofImage: proofImage,
         serviceFeeSubmittedAt: serverTimestamp(),
       });
       setFeeSubmitError("");
+
+      // Notify the driver that the passenger has verified the booking fee
+      if (booking.driverId) {
+        sendNotificationToUser({
+          recipientUserId: booking.driverId,
+          title: "Service Fee Confirmed!",
+          body: `${booking.passengerName || "Passenger"} confirmed the booking fee for ${booking.from} to ${booking.to}. Trip chat is now open!`,
+          data: { bookingId: booking.firestoreId, type: "fee_verified" },
+        });
+      }
+
+      showAppNotification(
+        lang === "en"
+          ? "Payment confirmed! Trip chat and driver details are now unlocked."
+          : "Ubwishyu bwemejwe! Ubutumwa n'amakuru by'umushoferi byafunguwe."
+      );
       return true;
     } catch (error) {
       setFeeSubmitError(error.code === "permission-denied"
-        ? "Firebase denied this payment proof. The latest Firestore rules must be published before it can be reviewed."
-        : `Payment proof could not be submitted: ${error.message}`);
+        ? "Firebase denied this update. Please check your connection."
+        : `Payment could not be confirmed: ${error.message}`);
       return false;
     }
   }
@@ -1144,7 +1173,7 @@ export default function App() {
           <div className="app-notification" role="status" aria-live="polite">
             <div className="app-notification-content">
               {notificationAvatar && <img className="app-notification-avatar" src={notificationAvatar} alt="Passenger profile" />}
-              <span>🔔 {notificationMessage}</span>
+              <span>{notificationMessage}</span>
             </div>
             <button type="button" aria-label="Dismiss notification" onClick={() => { setNotificationMessage(""); setNotificationAvatar(""); }}>
               ×

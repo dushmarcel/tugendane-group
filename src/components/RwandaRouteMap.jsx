@@ -69,14 +69,18 @@ export default function RwandaRouteMap({
         marginBottom: isExpanded ? "12px" : "0",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span style={{ fontSize: "20px" }}>🗺️</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--accent)" }}>
+            <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
+            <line x1="9" y1="3" x2="9" y2="18" />
+            <line x1="15" y1="6" x2="15" y2="21" />
+          </svg>
           <div>
             <div style={{ fontWeight: "700", fontSize: "14px", color: "var(--dark, #0f172a)" }}>
               {lang === "en" ? "Rwanda Intercity Route Corridors" : "Ikarita y'Inzira n'Ibyerekezo mu Rwanda"}
             </div>
             <div style={{ fontSize: "12px", color: "var(--dark-muted, #64748b)" }}>
               {fromCity && toCity
-                ? `${fromCity} ➔ ${toCity}`
+                ? `${fromCity} → ${toCity}`
                 : lang === "en" ? "Tap any city hub to inspect" : "Kanda ku mujyi ushaka kureba"}
             </div>
           </div>
@@ -228,7 +232,7 @@ export default function RwandaRouteMap({
               fontSize: "13px",
             }}>
               <div>
-                <strong>📍 {selectedPin}</strong>
+                <strong>{selectedPin}</strong>
                 <span style={{ color: "var(--dark-muted, #64748b)", marginLeft: "8px" }}>
                   {RWANDA_CITY_COORDINATES[selectedPin]?.label}
                 </span>
@@ -259,9 +263,9 @@ export default function RwandaRouteMap({
                 <button
                   type="button"
                   onClick={() => setSelectedPin(null)}
-                  style={{ background: "none", border: "none", cursor: "pointer", color: "var(--dark-muted)" }}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "var(--dark-muted)", fontSize: "16px" }}
                 >
-                  ✕
+                  &times;
                 </button>
               </div>
             </div>

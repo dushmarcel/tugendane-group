@@ -5,8 +5,8 @@ const SLIDES_DATA = [
     image: "/passenger-at-home.jpeg",
     alt: "Passenger at home at night searching Tugendane rides",
     title: "Frustrated by Bus Park Lines?",
-    question: "😤 Are you frustrated by the bus park lines and uncomfortable rides?",
-    answer: "✨ Tugendane Rides is for you and yours — here is your solution!",
+    question: "Are you frustrated by the bus park lines and uncomfortable rides?",
+    answer: "Tugendane Rides is for you and yours — here is your solution!",
     questionDelay: "200ms",
     answerDelay: "900ms",
   },
@@ -14,8 +14,8 @@ const SLIDES_DATA = [
     image: "/driver-at-home.jpeg",
     alt: "Driver at counter with car keys receiving booking alert",
     title: "Plan Your Journey Smarter",
-    question: "🛣️ Have you planned a journey? Fuel costs are still high nowadays.",
-    answer: "🚗 With Tugendane Rides you can reduce fuel cost and move with the vibes — it's simple and reliable.",
+    question: "Have you planned a journey? Fuel costs are still high nowadays.",
+    answer: "With Tugendane Rides you can reduce fuel cost and move with comfort — it's simple and reliable.",
     questionDelay: "200ms",
     answerDelay: "900ms",
   },
@@ -24,7 +24,7 @@ const SLIDES_DATA = [
     alt: "Meeting point by the road and fuel savings",
     title: "Share the Ride",
     question: null,
-    answer: "🤝 Share your ride and move safe and save with Tugendane.",
+    answer: "Share your ride and move safe and save with Tugendane.",
     questionDelay: null,
     answerDelay: "200ms",
   },
@@ -155,7 +155,7 @@ export default function AppIntro({ onFinish, initialSlide = 0 }) {
           onClick={onFinish}
           title="Skip to App"
         >
-          Skip ✕
+          Skip &times;
         </button>
       )}
 
@@ -228,7 +228,7 @@ export default function AppIntro({ onFinish, initialSlide = 0 }) {
                     className="btn btn-primary btn-get-started"
                     onClick={onFinish}
                   >
-                    Tangira / Get Started ➔
+                    Tangira / Get Started &rarr;
                   </button>
                 </div>
               </div>
@@ -271,7 +271,7 @@ export default function AppIntro({ onFinish, initialSlide = 0 }) {
               onClick={nextSlide}
               aria-label="Next page"
             >
-              Next ➔
+              Next &rarr;
             </button>
           ) : <div style={{ width: "90px" }} />}
         </div>

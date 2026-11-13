@@ -69,20 +69,20 @@ export default function AdminDashboard({
         <section className="admin-table-card">
           <div className="admin-section-heading">
             <div>
-              <h2>MTN service fee checks</h2>
-              <p>Check the transaction reference in MTN records before confirming payment.</p>
+              <h2>MTN service fee audit & checks</h2>
+              <p>Audit passenger MTN transaction IDs against your MTN MoMo statement. Flag fraudulent IDs to re-lock trips.</p>
             </div>
-            <div className="admin-total-pill">{adminFeeBookings.length} waiting</div>
+            <div className="admin-total-pill">{adminFeeBookings.length} logged</div>
           </div>
           {adminFeeBookings.length === 0 ? (
-            <div className="admin-empty">No service fee references are waiting for review.</div>
+            <div className="admin-empty">No service fee references recorded yet.</div>
           ) : (
             <div className="admin-review-list">
               {adminFeeBookings.map((booking) => (
                 <article className="admin-review-row" key={booking.firestoreId}>
                   <div>
                     <strong>{booking.passengerName || "Passenger"} · {booking.from} → {booking.to}</strong>
-                    <span>{calculateServiceFee(booking.subtotal || booking.totalPrice).toLocaleString()} RWF · MTN transaction ID: <b>{booking.serviceFeeReference || "Not provided"}</b></span>
+                    <span>{calculateServiceFee(booking.subtotal || booking.totalPrice).toLocaleString()} RWF · MTN TxID: <b style={{ color: "var(--primary)" }}>{booking.serviceFeeReference || "Not provided"}</b></span>
                     {booking.serviceFeeProofImage && (
                       <a className="admin-proof-link" href={booking.serviceFeeProofImage} target="_blank" rel="noreferrer">
                         <img className="admin-proof-thumbnail" src={booking.serviceFeeProofImage} alt="Passenger MTN payment screenshot" />
@@ -91,8 +91,24 @@ export default function AdminDashboard({
                     )}
                   </div>
                   <div className="admin-review-actions">
-                    <button type="button" className="btn btn-primary btn-sm" onClick={() => reviewServiceFee(booking, true)}>Verify payment</button>
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => reviewServiceFee(booking, false)}>Reject reference</button>
+                    {booking.serviceFeeStatus === "verified" ? (
+                      <>
+                        <span style={{ fontSize: "11px", fontWeight: "700", color: "#065f46", background: "#d1fae5", padding: "4px 8px", borderRadius: "10px", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                          Active / Verified
+                        </span>
+                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => reviewServiceFee(booking, false)}>
+                          Flag Fake ID
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button type="button" className="btn btn-primary btn-sm" onClick={() => reviewServiceFee(booking, true)}>Verify</button>
+                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => reviewServiceFee(booking, false)}>Reject</button>
+                      </>
+                    )}
                   </div>
                 </article>
               ))}
