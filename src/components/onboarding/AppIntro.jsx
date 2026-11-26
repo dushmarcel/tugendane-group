@@ -1,42 +1,44 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
-const SLIDES_DATA = [
+const getSlidesData = (lang = "en") => [
   {
     image: "/passenger-at-home.jpeg",
-    alt: "Passenger at home at night searching Tugendane rides",
-    title: "Frustrated by Bus Park Lines?",
-    question: "Are you frustrated by the bus park lines and uncomfortable rides?",
-    answer: "Tugendane Rides is for you and yours — here is your solution!",
+    alt: lang === "en" ? "Passenger at home at night searching Tugendane rides" : "Umugenzi mu rugo ari gushaka urugendo rwa Tugendane",
+    title: lang === "en" ? "Frustrated by Bus Park Lines?" : "Urarambiwe Imirongo yo muri Gare?",
+    question: lang === "en" ? "Are you frustrated by the bus park lines and uncomfortable rides?" : "Urarambiwe imirongo miremire yo muri gare no kugenda nabi?",
+    answer: lang === "en" ? "Tugendane Rides is for you and yours — here is your solution!" : "Tugendane Rides irahari ku bwawe na bagenzi bawe — dore umuti urambye!",
     questionDelay: "200ms",
     answerDelay: "900ms",
   },
   {
     image: "/driver-at-home.jpeg",
-    alt: "Driver at counter with car keys receiving booking alert",
-    title: "Plan Your Journey Smarter",
-    question: "Have you planned a journey? Fuel costs are still high nowadays.",
-    answer: "With Tugendane Rides you can reduce fuel cost and move with comfort — it's simple and reliable.",
+    alt: lang === "en" ? "Driver at counter with car keys receiving booking alert" : "Umushoferi mu rugo akiriye ubutumwa bw'umugenzi",
+    title: lang === "en" ? "Plan Your Journey Smarter" : "Tegura Urugendo Rwawe Neza",
+    question: lang === "en" ? "Have you planned a journey? Fuel costs are still high nowadays." : "Waba uteganya urugendo? Ibiciro bya lisansi biracyari hejuru muri iki gihe.",
+    answer: lang === "en" ? "With Tugendane Rides you can reduce fuel cost and move with comfort — it's simple and reliable." : "Hamwe na Tugendane Rides uragabanya ikiguzi cya lisansi unagende neza mu mudendezo — biroroshye kandi byizewe.",
     questionDelay: "200ms",
     answerDelay: "900ms",
   },
   {
     image: "/meeting-point.jpeg",
-    alt: "Meeting point by the road and fuel savings",
-    title: "Share the Ride",
+    alt: lang === "en" ? "Meeting point by the road and fuel savings" : "Aho guhurira ku muhanda no kuzigama lisansi",
+    title: lang === "en" ? "Share the Ride" : "Sangira Urugendo",
     question: null,
-    answer: "Share your ride and move safe and save with Tugendane.",
+    answer: lang === "en" ? "Share your ride and move safe and save with Tugendane." : "Sangira urugendo, ugende mu mutekano kandi uzigame hamwe na Tugendane.",
     questionDelay: null,
     answerDelay: "200ms",
   },
 ];
 
-export default function AppIntro({ onFinish, initialSlide = 0 }) {
+export default function AppIntro({ onFinish, initialSlide = 0, lang = "en" }) {
   const [currentSlide, setCurrentSlide] = useState(initialSlide);
   const [introStage, setIntroStage] = useState("navy");
   const [isShaking, setIsShaking] = useState(false);
   const touchStartX = useRef(null);
   const touchEndX = useRef(null);
   const isDragging = useRef(false);
+
+  const SLIDES_DATA = getSlidesData(lang);
 
   const TOTAL_SLIDES = 4; // 3 user photo slides + 1 final animated welcome splash
 
@@ -147,17 +149,26 @@ export default function AppIntro({ onFinish, initialSlide = 0 }) {
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
     >
-      {/* Floating Skip button only — no header bar */}
-      {currentSlide < TOTAL_SLIDES - 1 && (
-        <button
-          type="button"
-          className="onboarding-skip-btn onboarding-skip-floating"
-          onClick={onFinish}
-          title="Skip to App"
-        >
-          Skip &times;
-        </button>
-      )}
+      {/* Top Brand Header Bar — Logo, Brand Title & Skip */}
+      <header className="onboarding-top-bar">
+        <div className="onboarding-brand-box">
+          <div className="onboarding-logo-badge">
+            <img src="/tugendane-logo.png" alt="Tugendane Logo" />
+          </div>
+          <span className="onboarding-brand-text">Tugendane Rides</span>
+        </div>
+
+        {currentSlide < TOTAL_SLIDES - 1 && (
+          <button
+            type="button"
+            className="onboarding-skip-btn"
+            onClick={onFinish}
+            title={lang === "en" ? "Skip to App" : "Simbuka ujye muri App"}
+          >
+            {lang === "en" ? "Skip" : "Simbuka"} &times;
+          </button>
+        )}
+      </header>
 
       {/* Main Slide Track */}
       <main className="onboarding-track-container">
@@ -168,10 +179,6 @@ export default function AppIntro({ onFinish, initialSlide = 0 }) {
           {SLIDES_DATA.map((slide, idx) => (
             <section key={slide.title} className="onboarding-slide photo-onboarding-slide">
               <div className="photo-slide-container" key={`${slide.title}-${currentSlide === idx}`}>
-                <div className="story-brand-header" aria-label="Tugendane Rides">
-                  <img src="/tugendane-car.png" alt="" />
-                  <span>TUGENDANE RIDES</span>
-                </div>
                 {idx === 1 && slide.question && (
                   <p className="popping-sentence popping-sentence--question story-question-above">
                     {slide.question}
@@ -228,7 +235,7 @@ export default function AppIntro({ onFinish, initialSlide = 0 }) {
                     className="btn btn-primary btn-get-started"
                     onClick={onFinish}
                   >
-                    Tangira / Get Started &rarr;
+                    {lang === "en" ? "Get Started →" : "Tangira Urugendo →"}
                   </button>
                 </div>
               </div>
@@ -245,9 +252,9 @@ export default function AppIntro({ onFinish, initialSlide = 0 }) {
               type="button"
               className="btn btn-secondary btn-hover-prev"
               onClick={prevSlide}
-              aria-label="Previous page"
+              aria-label={lang === "en" ? "Previous page" : "Subira inyuma"}
             >
-              ← Back
+              ← {lang === "en" ? "Back" : "Inyuma"}
             </button>
           ) : (
             <div style={{ width: "90px" }} />
@@ -269,9 +276,9 @@ export default function AppIntro({ onFinish, initialSlide = 0 }) {
               type="button"
               className="btn btn-primary btn-hover-next"
               onClick={nextSlide}
-              aria-label="Next page"
+              aria-label={lang === "en" ? "Next page" : "Komeza"}
             >
-              Next &rarr;
+              {lang === "en" ? "Next →" : "Komeza →"}
             </button>
           ) : <div style={{ width: "90px" }} />}
         </div>

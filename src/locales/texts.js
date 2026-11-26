@@ -42,6 +42,9 @@ export const TEXTS = {
     prefNoSmoking: "No Smoking",
     prefAC: "AC Available",
     prefQuiet: "Quiet Ride",
+    prefQuietTrip: "Quiet Trip",
+    earningsLabel: "Earnings:",
+    driverBadge: "Tugendane Driver",
     prefMusic: "Music Allowed",
     allPreferences: "All Rides",
     
@@ -195,6 +198,9 @@ export const TEXTS = {
     prefNoSmoking: "Nta Kunywa Itabi",
     prefAC: "Imodoka Ifite AC",
     prefQuiet: "Urugendo Rutuje",
+    prefQuietTrip: "Urugendo Rutuje",
+    earningsLabel: "Inyungu:",
+    driverBadge: "Umushoferi wa Tugendane",
     prefMusic: "Umuziki Wemerwe",
     allPreferences: "Ingendo Zose",
     

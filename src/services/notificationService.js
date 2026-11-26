@@ -3,6 +3,8 @@ import { PushNotifications } from "@capacitor/push-notifications";
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
 
+let _pushRegistered = false;
+
 /**
  * Initialize Push Notifications for the logged-in user.
  * On native mobile devices (Android/iOS), registers with FCM via Capacitor PushNotifications plugin
@@ -13,6 +15,9 @@ export async function registerPushNotifications(userId) {
 
   try {
     if (Capacitor.isNativePlatform()) {
+      if (_pushRegistered) return null;
+      _pushRegistered = true;
+
       let permStatus = await PushNotifications.checkPermissions();
 
       if (permStatus.receive === "prompt" || permStatus.receive === "prompt-with-rationale") {

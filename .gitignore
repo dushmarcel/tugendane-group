@@ -34,6 +34,9 @@ desktop.ini
 firebase-debug.log
 firestore-debug.log
 
+# APK build artifacts
+*.apk
+
 # Logs
 *.log
 npm-debug.log*

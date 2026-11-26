@@ -98,8 +98,12 @@ service cloud.firestore {
         request.resource.data.totalPrice == resource.data.totalPrice &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status"])
       ) || (isAdmin()
-        && request.resource.data.serviceFeeStatus in ["verified", "rejected"]
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["serviceFeeStatus", "serviceFeeReviewedAt", "serviceFeeReviewedBy"]))
+        && (
+          (request.resource.data.serviceFeeStatus in ["verified", "rejected"]
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["serviceFeeStatus", "serviceFeeReviewedAt", "serviceFeeReviewedBy"]))
+          || (request.resource.data.status in ["Confirmed", "Declined", "Cancelled"]
+            && request.resource.data.diff(resource.data).affectedKeys().hasAny(["status", "adminConfirmed", "adminConfirmedAt", "adminDeclined", "adminDeclinedAt"]))
+        ))
         || (request.auth != null && isActiveAccount(request.auth.uid)
           && resource.data.passengerId == request.auth.uid
           && resource.data.status == "Confirmed"
@@ -118,23 +122,25 @@ service cloud.firestore {
           return get(/databases/$(database)/documents/bookings/$(bookingId)).data;
         }
         function isParticipant() {
-          return request.auth != null && (booking().passengerId == request.auth.uid || booking().driverId == request.auth.uid);
+          return isAdmin() || (request.auth != null && (booking().passengerId == request.auth.uid || booking().driverId == request.auth.uid));
         }
-        allow read: if isParticipant() && isActiveAccount(request.auth.uid) && booking().status == "Confirmed" && booking().serviceFeeStatus == "verified";
-        allow create: if isParticipant() && isActiveAccount(request.auth.uid) && booking().status == "Confirmed" && booking().serviceFeeStatus == "verified"
+        allow read: if isParticipant() && (isAdmin() || (isActiveAccount(request.auth.uid) && booking().status == "Confirmed"));
+        allow create: if isParticipant() && (isAdmin() || (isActiveAccount(request.auth.uid) && booking().status == "Confirmed"))
           && request.resource.data.senderId == request.auth.uid
           && request.resource.data.text is string
           && request.resource.data.text.size() > 0
-          && request.resource.data.text.size() <= 2000;
-        allow update: if isParticipant() && isActiveAccount(request.auth.uid) && booking().status == "Confirmed" && booking().serviceFeeStatus == "verified"
+          && request.resource.data.text.size() <= 2000
+          && (!('imageUrl' in request.resource.data) || (request.resource.data.imageUrl is string && request.resource.data.imageUrl.size() <= 500000))
+          && (!('audioUrl' in request.resource.data) || (request.resource.data.audioUrl is string && request.resource.data.audioUrl.size() <= 500000));
+        allow update: if isParticipant() && (isAdmin() || (isActiveAccount(request.auth.uid) && booking().status == "Confirmed"))
           && resource.data.senderId == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["text", "edited", "editedAt"])
           && request.resource.data.text is string
           && request.resource.data.text.size() > 0
           && request.resource.data.text.size() <= 2000
           && request.resource.data.edited == true;
-        allow delete: if isParticipant() && isActiveAccount(request.auth.uid) && booking().status == "Confirmed" && booking().serviceFeeStatus == "verified"
-          && resource.data.senderId == request.auth.uid;
+        allow delete: if isParticipant() && (isAdmin() || (isActiveAccount(request.auth.uid) && booking().status == "Confirmed"))
+          && (isAdmin() || resource.data.senderId == request.auth.uid);
       }
     }
 

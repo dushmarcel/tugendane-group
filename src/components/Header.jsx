@@ -124,19 +124,6 @@ export default function Header({
             <button
               className="app-menu-item"
               onClick={() => {
-                if (setShowStoryWalkthrough) setShowStoryWalkthrough(true);
-                setShowMenu(false);
-              }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "10px" }}>
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-              </svg>
-              <span>{lang === "en" ? "App Story (How It Works)" : "Inkuru n'Uko Ikora"}</span>
-            </button>
-            <button
-              className="app-menu-item"
-              onClick={() => {
                 setShowPrivacyModal(true);
                 setShowMenu(false);
               }}

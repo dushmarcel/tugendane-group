@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { ZegoUIKitPrebuilt } from "@zegocloud/zego-uikit-prebuilt";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../firebase";
 
-const ZEGO_APP_ID = 534311044;
-const ZEGO_SERVER_SECRET = "a20ff4ffe43fd731b586b0fffd50d459";
+const ZEGO_APP_ID = Number(import.meta.env.VITE_ZEGO_APP_ID) || 534311044;
+const ZEGO_SERVER_SECRET = import.meta.env.VITE_ZEGO_SERVER_SECRET || "a20ff4ffe43fd731b586b0fffd50d459";
 
 export default function CallModal({ booking, currentUser, userProfile, onClose }) {
   const containerRef = useRef(null);
@@ -23,75 +25,104 @@ export default function CallModal({ booking, currentUser, userProfile, onClose }
       currentUser.email?.split("@")[0] ||
       "User";
 
-    let initError = null;
-    let kitToken;
+    let cancelled = false;
 
-    try {
-      kitToken = ZegoUIKitPrebuilt.generateKitToken(
-        ZEGO_APP_ID,
-        ZEGO_SERVER_SECRET,
-        roomID,
-        userID,
-        userName
-      );
-    } catch {
-      initError = "Failed to initialize call. Please try again.";
+    async function initCall() {
+      try {
+        let kitToken = null;
+
+        // 1. Try secure Cloud Function first (if deployed)
+        try {
+          const getToken = httpsCallable(functions, "generateZegoKitToken");
+          const result = await getToken({ roomID, userName });
+          if (result?.data?.token) {
+            kitToken = ZegoUIKitPrebuilt.generateKitTokenForProduction(
+              result.data.appID || ZEGO_APP_ID,
+              result.data.token,
+              roomID,
+              userID,
+              userName
+            );
+          }
+        } catch (cloudErr) {
+          console.warn("Cloud function token generation failed, using local token generator fallback:", cloudErr?.message);
+        }
+
+        // 2. Fallback to direct client token generation if Cloud Function not yet deployed
+        if (!kitToken) {
+          kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
+            ZEGO_APP_ID,
+            ZEGO_SERVER_SECRET,
+            roomID,
+            userID,
+            userName
+          );
+        }
+
+        if (cancelled || !containerRef.current) return;
+
+        if (!kitToken) {
+          throw new Error("Could not generate call security token.");
+        }
+
+        try {
+          const zp = ZegoUIKitPrebuilt.create(kitToken);
+          zegoRef.current = zp;
+
+          zp.joinRoom({
+            container: containerRef.current,
+            sharedLinks: [],
+            scenario: {
+              mode: ZegoUIKitPrebuilt.OneONoneCall,
+              config: { role: "Host" },
+            },
+            turnOnCameraWhenJoining: false,
+            showMyCameraToggleButton: false,
+            showCameraToggleButton: false,
+            showScreenSharingButton: false,
+            showLayoutButton: false,
+            showUserList: false,
+            showAudioVideoSettingsButton: false,
+            turnOnMicrophoneWhenJoining: true,
+            showMyMicrophoneToggleButton: true,
+            showTextChat: false,
+            maxUsers: 2,
+            onJoinRoom: () => {
+              if (!cancelled) setStatus("active");
+            },
+            onLeaveRoom: () => {
+              if (!cancelled) {
+                setStatus("ended");
+                setTimeout(onClose, 600);
+              }
+            },
+            onUserLeave: () => {
+              if (!cancelled) {
+                setStatus("ended");
+                setTimeout(onClose, 1200);
+              }
+            },
+          });
+        } catch {
+          if (!cancelled) {
+            setStatus("error");
+            setErrorMsg("Could not start call. Check your microphone permissions.");
+          }
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setStatus("error");
+          setErrorMsg(
+            err?.message || "Failed to initialize call. Please check your network and try again."
+          );
+        }
+      }
     }
 
-    if (initError) {
-      const msg = initError;
-      setTimeout(() => {
-        setStatus("error");
-        setErrorMsg(msg);
-      }, 0);
-      return;
-    }
-
-    let startError = null;
-    try {
-      const zp = ZegoUIKitPrebuilt.create(kitToken);
-      zegoRef.current = zp;
-
-      zp.joinRoom({
-        container: containerRef.current,
-        scenario: {
-          mode: ZegoUIKitPrebuilt.OneONoneCall,
-          config: { role: "Host" },
-        },
-        turnOnCameraWhenJoining: false,
-        showMyCameraToggleButton: false,
-        showCameraToggleButton: false,
-        showScreenSharingButton: false,
-        showLayoutButton: false,
-        showUserList: false,
-        showAudioVideoSettingsButton: false,
-        turnOnMicrophoneWhenJoining: true,
-        showMyMicrophoneToggleButton: true,
-        showTextChat: false,
-        maxUsers: 2,
-        onJoinRoom: () => setStatus("active"),
-        onLeaveRoom: () => {
-          setStatus("ended");
-          setTimeout(onClose, 600);
-        },
-        onUserLeave: () => {
-          setStatus("ended");
-          setTimeout(onClose, 1200);
-        },
-      });
-    } catch {
-      startError = "Could not start call. Check your microphone permissions.";
-    }
-
-    if (startError) {
-      const msg = startError;
-      setTimeout(() => {
-        setStatus("error");
-        setErrorMsg(msg);
-      }, 0);
-    }
+    initCall();
 
     return () => {
+      cancelled = true;
       if (zegoRef.current) {
         try { zegoRef.current.destroy(); } catch { /* ignore */ }
         zegoRef.current = null;
@@ -116,7 +147,7 @@ export default function CallModal({ booking, currentUser, userProfile, onClose }
       ? (booking.passengerName || "Passenger")
       : (booking.driverName || "Driver");
 
-  const otherRoute = `${booking.from || ""} \u2192 ${booking.to || ""}`;
+  const otherRoute = `${booking.from || ""} → ${booking.to || ""}`;
 
   return (
     <div className="call-modal-overlay" role="dialog" aria-modal="true" aria-label="In-app call">
@@ -132,12 +163,23 @@ export default function CallModal({ booking, currentUser, userProfile, onClose }
           <h2 className="call-other-name">{otherName}</h2>
           <p className="call-route-label">{otherRoute}</p>
           <span className={`call-status-pill call-status--${status}`}>
-            {status === "connecting" && "Connecting\u2026"}
+            {status === "connecting" && "Connecting call…"}
             {status === "active" && "Call in progress"}
             {status === "ended" && "Call ended"}
             {status === "error" && "Connection failed"}
           </span>
         </div>
+
+        {/* Loading spinner while fetching token */}
+        {status === "connecting" && (
+          <div className="call-loading-box" style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "24px", gap: "12px" }}>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ animation: "spin 1s linear infinite" }}>
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+            <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+            <span style={{ color: "#6b7280", fontSize: "14px" }}>Connecting call...</span>
+          </div>
+        )}
 
         {/* Error state */}
         {status === "error" && (
@@ -155,7 +197,7 @@ export default function CallModal({ booking, currentUser, userProfile, onClose }
         <div
           ref={containerRef}
           className="call-zego-container"
-          style={{ display: status === "error" ? "none" : "block" }}
+          style={{ display: status === "error" || status === "connecting" ? "none" : "block" }}
         />
 
         {/* End call button */}

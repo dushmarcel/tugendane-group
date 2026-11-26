@@ -127,3 +127,15 @@ export const RWANDA_CITY_COORDINATES = {
   Ruhango: { lat: -2.2167, lng: 29.7833, label: "Ruhango" },
 };
 
+export function isRideUpcoming(departureDate, departureTime = "23:59") {
+  if (!departureDate) return true;
+  try {
+    const rideDateTime = new Date(`${departureDate}T${departureTime || "00:00"}`);
+    if (Number.isNaN(rideDateTime.getTime())) return true;
+    return rideDateTime.getTime() >= Date.now();
+  } catch {
+    return true;
+  }
+}
+
+

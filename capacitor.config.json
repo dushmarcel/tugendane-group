@@ -1,5 +1,12 @@
 {
   "appId": "com.tugendanegroup.rides",
   "appName": "Tugendane",
-  "webDir": "dist"
+  "webDir": "dist",
+  "plugins": {
+    "GoogleAuth": {
+      "scopes": ["profile", "email"],
+      "serverClientId": "166007770565-k79kncrrm7leoejfk29dg9d7s3d3h33q.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": true
+    }
+  }
 }

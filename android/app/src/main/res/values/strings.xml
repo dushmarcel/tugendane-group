@@ -4,4 +4,5 @@
     <string name="title_activity_main">Tugendane Rides</string>
     <string name="package_name">com.tugendanegroup.rides</string>
     <string name="custom_url_scheme">com.tugendanegroup.rides</string>
+    <string name="server_client_id">166007770565-k79kncrrm7leoejfk29dg9d7s3d3h33q.apps.googleusercontent.com</string>
 </resources>

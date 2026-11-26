@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ADMIN_EMAIL } from "../locales/texts";
 import { calculateServiceFee } from "../services/rwandaRoutes";
 
@@ -13,12 +13,27 @@ export default function AdminDashboard({
   adminHistoryLoading,
   adminFeeBookings,
   adminFeedbackItems,
+  adminAllBookings = [],
+  confirmRideBooking,
+  declineRideBooking,
+  openTripChat,
+  openCall,
   toggleAdminUserActive,
   openAdminUserHistory,
   reviewServiceFee,
   closeFeedbackItem,
   handleLogout,
 }) {
+  const [bookingFilter, setBookingFilter] = useState("all");
+
+  const pendingBookings = adminAllBookings.filter((b) => b.status === "Pending");
+  const confirmedBookings = adminAllBookings.filter((b) => b.status === "Confirmed");
+  const displayedBookings = adminAllBookings.filter((b) => {
+    if (bookingFilter === "pending") return b.status === "Pending";
+    if (bookingFilter === "confirmed") return b.status === "Confirmed";
+    return true;
+  });
+
   useEffect(() => {
     if (!adminSelectedUser) return undefined;
     const previousBodyOverflow = document.body.style.overflow;
@@ -65,6 +80,173 @@ export default function AdminDashboard({
             </p>
           </div>
         )}
+
+        {/* RIDE BOOKINGS & CONFIRMATION SECTION */}
+        <section className="admin-table-card">
+          <div className="admin-section-heading">
+            <div>
+              <h2>Ride Bookings & Confirmation</h2>
+              <p>Review passenger seat requests, confirm rides smoothly, call or text drivers and passengers.</p>
+            </div>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              {pendingBookings.length > 0 && (
+                <span style={{ background: "#fef3c7", color: "#b45309", padding: "4px 10px", borderRadius: "12px", fontSize: "12px", fontWeight: "800" }}>
+                  {pendingBookings.length} Need Confirmation
+                </span>
+              )}
+              <div className="admin-total-pill">{adminAllBookings.length} bookings</div>
+            </div>
+          </div>
+
+          {/* Filters */}
+          <div style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className={`btn btn-sm ${bookingFilter === "all" ? "btn-primary" : "btn-secondary"}`}
+              onClick={() => setBookingFilter("all")}
+            >
+              All ({adminAllBookings.length})
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${bookingFilter === "pending" ? "btn-primary" : "btn-secondary"}`}
+              onClick={() => setBookingFilter("pending")}
+              style={bookingFilter === "pending" ? { background: "#b45309", borderColor: "#b45309" } : {}}
+            >
+              Pending Approval ({pendingBookings.length})
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${bookingFilter === "confirmed" ? "btn-primary" : "btn-secondary"}`}
+              onClick={() => setBookingFilter("confirmed")}
+            >
+              Confirmed ({confirmedBookings.length})
+            </button>
+          </div>
+
+          {displayedBookings.length === 0 ? (
+            <div className="admin-empty">No ride bookings found in this view.</div>
+          ) : (
+            <div className="admin-review-list">
+              {displayedBookings.map((b) => (
+                <article
+                  className="admin-review-row"
+                  key={b.firestoreId || b.id}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                    padding: "16px",
+                    borderLeft: b.status === "Pending" ? "4px solid #f59e0b" : "4px solid #10b981",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%", flexWrap: "wrap", gap: "8px" }}>
+                    <div>
+                      <strong style={{ fontSize: "16px", color: "var(--dark)" }}>
+                        {b.from} → {b.to}
+                      </strong>
+                      <div style={{ fontSize: "13px", color: "var(--dark-muted)", marginTop: "2px" }}>
+                        📅 {b.departureDate} at {b.departureTime} · 💺 {b.seatsBooked} seat(s) · 💰 {Number(b.subtotal || b.totalPrice || 0).toLocaleString()} RWF
+                      </div>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: "12px",
+                        fontWeight: "800",
+                        padding: "3px 10px",
+                        borderRadius: "12px",
+                        background: b.status === "Confirmed" ? "#d1fae5" : "#fef3c7",
+                        color: b.status === "Confirmed" ? "#065f46" : "#b45309",
+                      }}
+                    >
+                      {b.status === "Confirmed" ? "✓ Confirmed" : "⏳ Pending Confirmation"}
+                    </span>
+                  </div>
+
+                  <div style={{ background: "var(--light-bg, #f8fafc)", padding: "10px 14px", borderRadius: "8px", fontSize: "13px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                    <div>
+                      <div style={{ fontWeight: "700", color: "var(--primary)" }}>Passenger:</div>
+                      <div>{b.passengerName || "Passenger"}</div>
+                      <div style={{ color: "var(--dark-muted)", fontSize: "12px" }}>📞 {b.passengerPhone || "No phone listed"}</div>
+                      <div style={{ color: "var(--secondary)", fontSize: "12px", marginTop: "2px" }}>📍 Pickup: {b.pickupLocation}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: "700", color: "var(--primary)" }}>Driver:</div>
+                      <div>{b.driverName || "Driver"}</div>
+                      <div style={{ color: "var(--dark-muted)", fontSize: "12px" }}>📞 {b.driverPhone || "No phone listed"}</div>
+                      <div style={{ color: "var(--dark-muted)", fontSize: "12px", marginTop: "2px" }}>🚗 {b.vehicle} ({b.plate})</div>
+                    </div>
+                  </div>
+
+                  {b.notes && (
+                    <div style={{ fontSize: "12.5px", fontStyle: "italic", color: "var(--dark-muted)" }}>
+                      Note: "{b.notes}"
+                    </div>
+                  )}
+
+                  {/* Admin Actions */}
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "4px" }}>
+                    {b.status === "Pending" && confirmRideBooking && (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-primary"
+                        onClick={() => confirmRideBooking(b)}
+                        style={{ background: "#059669", borderColor: "#059669", fontWeight: "700" }}
+                      >
+                        ✓ Confirm Ride
+                      </button>
+                    )}
+
+                    {b.status === "Pending" && declineRideBooking && (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-secondary"
+                        onClick={() => declineRideBooking(b)}
+                      >
+                        ✕ Decline
+                      </button>
+                    )}
+
+                    {openCall && (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-call"
+                        onClick={() => openCall(b)}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style={{ display: "inline-block", verticalAlign: "-1px", marginRight: "4px" }}>
+                          <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
+                        </svg>
+                        Call in App
+                      </button>
+                    )}
+
+                    {openTripChat && (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-secondary"
+                        onClick={() => openTripChat(b)}
+                      >
+                        💬 Text in App
+                      </button>
+                    )}
+
+                    {b.passengerPhone && (
+                      <a href={`tel:${b.passengerPhone}`} className="btn btn-sm btn-secondary" style={{ fontSize: "12px" }}>
+                        Dial Passenger
+                      </a>
+                    )}
+
+                    {b.driverPhone && (
+                      <a href={`tel:${b.driverPhone}`} className="btn btn-sm btn-secondary" style={{ fontSize: "12px" }}>
+                        Dial Driver
+                      </a>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
 
         <section className="admin-table-card">
           <div className="admin-section-heading">

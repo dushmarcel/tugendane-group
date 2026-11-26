@@ -1,11 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { App as CapacitorApp } from "@capacitor/app";
 import { Geolocation } from "@capacitor/geolocation";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  signInWithCredential,
   signOut,
   onAuthStateChanged,
+  GoogleAuthProvider,
+  sendEmailVerification,
+  signInWithPopup,
 } from "firebase/auth";
 import {
   addDoc,
@@ -35,6 +39,7 @@ import {
 import {
   CITY_PICKUP_POINTS,
   getSuggestedPrice,
+  isRideUpcoming,
 } from "./services/rwandaRoutes";
 import {
   registerPushNotifications,
@@ -54,28 +59,18 @@ import ProfileView from "./pages/ProfileView";
 import FeedbackView from "./pages/FeedbackView";
 import AdminDashboard from "./pages/AdminDashboard";
 import AuthScreen from "./pages/AuthScreen";
+import EmailVerificationScreen from "./pages/EmailVerificationScreen";
 
 import BookingModal from "./modals/BookingModal";
 import DriverSetupModal from "./modals/DriverSetupModal";
 import TripChatModal from "./modals/TripChatModal";
 import SosModal from "./modals/SosModal";
 import PrivacyModal from "./modals/PrivacyModal";
-import CallModal from "./modals/CallModal";
+const CallModal = lazy(() => import("./modals/CallModal"));
 
 import "./App.css";
 
 const DEFAULT_DEPARTURE_DATE = new Date(Date.now() + 86400000).toISOString().split("T")[0];
-
-function isRideUpcoming(departureDate, departureTime = "23:59") {
-  if (!departureDate) return true;
-  try {
-    const rideDateTime = new Date(`${departureDate}T${departureTime || "00:00"}`);
-    if (Number.isNaN(rideDateTime.getTime())) return true;
-    return rideDateTime.getTime() >= Date.now();
-  } catch {
-    return true;
-  }
-}
 
 function uniqueBookingRecords(records) {
   const unique = new Map();
@@ -86,9 +81,28 @@ function uniqueBookingRecords(records) {
   return [...unique.values()];
 }
 
+const STORAGE_KEY_LANG = "tugendane_saved_lang";
+const STORAGE_KEY_INTRO_DONE = "tugendane_intro_finished";
+const STORAGE_KEY_KEEP_LOGGED_IN = "tugendane_keep_logged_in_v1";
+const STORAGE_KEY_SESSION_EXPIRY = "tugendane_session_expiry_v1";
+
 export default function App() {
   // Localization
-  const [lang, setLang] = useState("en");
+  const [lang, setLangState] = useState(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEY_LANG) || "en";
+    } catch {
+      return "en";
+    }
+  });
+
+  function setLang(newLang) {
+    setLangState(newLang);
+    try {
+      localStorage.setItem(STORAGE_KEY_LANG, newLang);
+    } catch {}
+  }
+
   const t = TEXTS[lang];
 
   // Auth & User State
@@ -96,8 +110,25 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [authInitialized, setAuthInitialized] = useState(false);
   const [introStage, setIntroStage] = useState("navy");
-  const [introFinished, setIntroFinished] = useState(false);
-  const [langSelected, setLangSelected] = useState(false);
+  const [introFinished, setIntroFinished] = useState(() => {
+    try {
+      const done = localStorage.getItem(STORAGE_KEY_INTRO_DONE) === "true";
+      const keep = localStorage.getItem(STORAGE_KEY_KEEP_LOGGED_IN) === "true";
+      const exp = Number(localStorage.getItem(STORAGE_KEY_SESSION_EXPIRY) || 0);
+      return done || (keep && exp > Date.now());
+    } catch {
+      return false;
+    }
+  });
+  const [langSelected, setLangSelected] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_LANG);
+      const done = localStorage.getItem(STORAGE_KEY_INTRO_DONE) === "true";
+      return Boolean(saved || done);
+    } catch {
+      return false;
+    }
+  });
   const [showStoryWalkthrough, setShowStoryWalkthrough] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
   const profileDisplayName = userProfile?.userName?.trim()
@@ -118,6 +149,7 @@ export default function App() {
   const [adminHistoryLoading, setAdminHistoryLoading] = useState(false);
   const [adminFeeBookings, setAdminFeeBookings] = useState([]);
   const [adminFeedbackItems, setAdminFeedbackItems] = useState([]);
+  const [adminAllBookings, setAdminAllBookings] = useState([]);
   const knownBookingStates = useRef(new Map());
   const driverBookingsInitialized = useRef(false);
   const knownActiveRideIds = useRef(null);
@@ -238,6 +270,8 @@ export default function App() {
   }, [currentUser]);
   const [authError, setAuthError] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
+  // Tracks that the user verified email in this session so we can bypass the check
+  const [emailVerifiedFlag, setEmailVerifiedFlag] = useState(false);
 
   // Load private marketplace data
   useEffect(() => {
@@ -263,6 +297,15 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        const keep = localStorage.getItem(STORAGE_KEY_KEEP_LOGGED_IN) === "true";
+        const exp = Number(localStorage.getItem(STORAGE_KEY_SESSION_EXPIRY) || 0);
+        if (keep && exp > 0 && Date.now() > exp) {
+          localStorage.removeItem(STORAGE_KEY_KEEP_LOGGED_IN);
+          localStorage.removeItem(STORAGE_KEY_SESSION_EXPIRY);
+          await signOut(auth);
+          return;
+        }
+
         setCurrentUser(user);
         setAuthMode("app");
         setAuthInitialized(true);
@@ -306,14 +349,20 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Setup foreground push notification listener
+  // Setup foreground & click push notification listener
   useEffect(() => {
     if (!currentUser) return undefined;
-    const cleanup = setupNotificationListeners((notification) => {
-      const title = notification.title || "Tugendane Alert";
-      const body = notification.body || "";
-      showAppNotification(`${title}: ${body}`, notification.data?.passengerProfilePicture);
-    });
+    const cleanup = setupNotificationListeners(
+      (notification) => {
+        const title = notification.title || "Tugendane Alert";
+        const body = notification.body || "";
+        showAppNotification(`${title}: ${body}`, notification.data?.passengerProfilePicture);
+      },
+      (action) => {
+        setCurrentTab("home");
+        setAuthMode("app");
+      }
+    );
     return cleanup;
   }, [currentUser]);
 
@@ -454,7 +503,15 @@ export default function App() {
     const stopFeedback = onSnapshot(feedbackQuery, (snapshot) => {
       setAdminFeedbackItems(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
     }, (error) => console.warn("Could not load feedback reports:", error));
-    return () => { stopFees(); stopFeedback(); };
+
+    const allBookingsQuery = query(collection(db, "bookings"));
+    const stopAllBookings = onSnapshot(allBookingsQuery, (snapshot) => {
+      const items = snapshot.docs.map((d) => ({ firestoreId: d.id, ...d.data() }));
+      items.sort((a, b) => new Date(b.bookedAt || 0) - new Date(a.bookedAt || 0));
+      setAdminAllBookings(items);
+    }, (error) => console.warn("Could not load all bookings for admin:", error));
+
+    return () => { stopFees(); stopFeedback(); stopAllBookings(); };
   }, [currentUser]);
 
   // Intro splash progression for standalone BrandIntro
@@ -694,17 +751,24 @@ export default function App() {
     await handleLogout();
   }
 
-  async function sendChatMessage(event, replyTo = null) {
-    event.preventDefault();
-    const text = chatDraft.trim();
-    if (!text || !chatBooking?.firestoreId || !currentUser) return;
-    if (chatBooking.status !== "Confirmed") {
-      alert("Chat opens after the driver approves this booking.");
-      return;
+  async function sendChatMessage(content, replyTo = null) {
+    if (content && typeof content.preventDefault === "function") {
+      content.preventDefault();
     }
-    if (chatBooking.serviceFeeStatus !== "verified") {
-      alert("Chat opens after an administrator verifies the service fee payment reference.");
-      return;
+    const isObj = content && typeof content === "object" && !content.preventDefault;
+    const text = isObj ? (content.text || "").trim() : chatDraft.trim();
+    const imageUrl = isObj ? content.imageUrl || null : null;
+    const audioUrl = isObj ? content.audioUrl || null : null;
+    const audioDuration = isObj ? content.audioDuration || null : null;
+
+    const messageText = text || (imageUrl ? "[Photo]" : audioUrl ? "[Voice note]" : "");
+    if (!messageText || !chatBooking?.firestoreId || !currentUser) return;
+    const isAppAdmin = currentUser.email?.toLowerCase() === ADMIN_EMAIL;
+    if (!isAppAdmin && !chatBooking.isAdminChat) {
+      if (chatBooking.status !== "Confirmed") {
+        alert("Chat opens after this booking is confirmed.");
+        return;
+      }
     }
     try {
       const fullName = profileDisplayName || currentUser.email || "Tugendane member";
@@ -712,7 +776,9 @@ export default function App() {
       await addDoc(collection(db, "bookings", chatBooking.firestoreId, "messages"), {
         senderId: currentUser.uid,
         senderName,
-        text,
+        text: messageText,
+        ...(imageUrl ? { imageUrl } : {}),
+        ...(audioUrl ? { audioUrl, audioDuration: audioDuration || 0 } : {}),
         ...(replyTo ? { replyTo: { id: replyTo.id, senderId: replyTo.senderId, senderName: replyTo.senderName, text: replyTo.text } } : {}),
         createdAt: serverTimestamp(),
       });
@@ -723,7 +789,7 @@ export default function App() {
         sendNotificationToUser({
           recipientUserId: recipientId,
           title: `New message from ${senderName}`,
-          body: text,
+          body: imageUrl ? "📷 Photo" : audioUrl ? "🎤 Voice message" : messageText,
           data: { bookingId: chatBooking.firestoreId },
         });
       }
@@ -818,6 +884,56 @@ export default function App() {
       });
     } catch (error) {
       alert(`Service fee review could not be saved: ${error.message}`);
+    }
+  }
+
+  async function confirmRideBooking(booking) {
+    if (!booking?.firestoreId) return;
+    try {
+      await updateDoc(doc(db, "bookings", booking.firestoreId), {
+        status: "Confirmed",
+        adminConfirmed: true,
+        adminConfirmedAt: serverTimestamp(),
+      });
+
+      if (booking.passengerId) {
+        sendNotificationToUser({
+          recipientUserId: booking.passengerId,
+          title: "Ride Confirmed!",
+          body: `Your booking for ${booking.from} to ${booking.to} has been confirmed by Admin!`,
+          data: { bookingId: booking.firestoreId, type: "booking_confirmed" },
+        });
+      }
+
+      if (booking.driverId) {
+        sendNotificationToUser({
+          recipientUserId: booking.driverId,
+          title: "Booking Confirmed by Admin",
+          body: `Ride from ${booking.from} to ${booking.to} (${booking.seatsBooked} seat(s)) is confirmed! Passenger details are now unlocked.`,
+          data: { bookingId: booking.firestoreId, type: "booking_confirmed" },
+        });
+      }
+
+      showAppNotification(`Booking from ${booking.from} to ${booking.to} confirmed successfully!`);
+    } catch (err) {
+      console.error("Could not confirm booking:", err);
+      alert(`Could not confirm booking: ${err.message}`);
+    }
+  }
+
+  async function declineRideBooking(booking) {
+    if (!booking?.firestoreId) return;
+    if (!window.confirm(`Decline booking for ${booking.from} to ${booking.to}?`)) return;
+    try {
+      await updateDoc(doc(db, "bookings", booking.firestoreId), {
+        status: "Declined",
+        adminDeclined: true,
+        adminDeclinedAt: serverTimestamp(),
+      });
+      showAppNotification(`Booking declined.`);
+    } catch (err) {
+      console.error("Could not decline booking:", err);
+      alert(`Could not decline booking: ${err.message}`);
     }
   }
 
@@ -925,6 +1041,10 @@ export default function App() {
 
   async function handleLogout() {
     try {
+      try {
+        localStorage.removeItem(STORAGE_KEY_KEEP_LOGGED_IN);
+        localStorage.removeItem(STORAGE_KEY_SESSION_EXPIRY);
+      } catch {}
       await signOut(auth);
       setCurrentUser(null);
       setUserProfile(null);
@@ -987,6 +1107,16 @@ export default function App() {
         } catch (profileError) {
           console.warn("Account created, but profile details could not be saved:", profileError);
         }
+
+        try {
+          await sendEmailVerification(loggedUser, {
+            url: `${window.location.origin}/?verified=true`,
+            handleCodeInApp: true,
+          });
+        } catch (emailErr) {
+          console.warn("Could not dispatch verification email:", emailErr);
+        }
+
         setUserProfile(profile);
         setRole(authForm.isDriver ? "driver" : "passenger");
         setAuthForm((form) => ({ ...form, loginAs: authForm.isDriver ? "driver" : "passenger" }));
@@ -1035,6 +1165,16 @@ export default function App() {
       }
 
       setCurrentUser(loggedUser);
+      if (authForm.keepLoggedIn !== false) {
+        try {
+          localStorage.setItem(STORAGE_KEY_KEEP_LOGGED_IN, "true");
+          localStorage.setItem(STORAGE_KEY_SESSION_EXPIRY, String(Date.now() + 30 * 24 * 60 * 60 * 1000));
+          localStorage.setItem(STORAGE_KEY_INTRO_DONE, "true");
+          localStorage.setItem(STORAGE_KEY_LANG, lang);
+        } catch (sessionErr) {
+          console.warn("Could not save 30-day session:", sessionErr);
+        }
+      }
       try {
         const userBookings = await getUserBookings(loggedUser.uid);
         setBookings(userBookings);
@@ -1043,6 +1183,8 @@ export default function App() {
         setBookings([]);
       }
 
+      // Clear loading BEFORE switching mode so the button doesn't stay stuck
+      setAuthLoading(false);
       setAuthMode("app");
       setAuthModalReason("");
 
@@ -1074,7 +1216,136 @@ export default function App() {
     }
   }
 
-  // Step 0: Language selection (very first thing ever)
+  async function handleGoogleAuth(requestedRole = "passenger") {
+    setAuthLoading(true);
+    setAuthError("");
+    try {
+      let result = null;
+
+      // On native Android/iOS: try native plugin first, fall back to redirect
+      const { Capacitor } = await import("@capacitor/core");
+      if (Capacitor.isNativePlatform()) {
+        const rawClientId = import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID || "";
+        const isClientConfigured = rawClientId && !rawClientId.includes("REPLACE_WITH");
+
+        if (isClientConfigured) {
+          // Native plugin path — shows the system "Choose Account" sheet
+          try {
+            const { GoogleAuth } = await import("@codetrix-studio/capacitor-google-auth");
+            await GoogleAuth.initialize({
+              clientId: rawClientId,
+              scopes: ["profile", "email"],
+              grantOfflineAccess: true,
+            });
+            const googleUser = await GoogleAuth.signIn();
+            const idToken = googleUser?.authentication?.idToken;
+            if (!idToken) throw new Error("Google sign-in did not return an ID token.");
+            const credential = GoogleAuthProvider.credential(idToken);
+            result = await signInWithCredential(auth, credential);
+          } catch (nativeErr) {
+            // User cancelled or plugin error — do not fall through to redirect
+            if (
+              nativeErr.message === "The user cancelled the sign-in flow." ||
+              nativeErr.message?.includes("cancelled") ||
+              nativeErr.message?.includes("canceled") ||
+              nativeErr.message?.includes("12501") // Google Sign-In cancel code
+            ) {
+              setAuthLoading(false);
+              return;
+            }
+            console.warn("Native GoogleAuth error:", nativeErr);
+            throw nativeErr;
+          }
+        } else {
+          // No web client ID configured yet
+          throw new Error(
+            lang === "en"
+              ? "Google Sign-In is being finalized with Firebase authentication. In the meantime, please log in with your email & password or create an account."
+              : "Kwinjira ukoresheje Google biracyanozwa. Koresha imeli n'ijambobanga cyangwa ufungure konti nshya."
+          );
+        }
+      } else {
+        // Web browser: use signInWithPopup (works fine in browser)
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: "select_account" });
+        result = await signInWithPopup(auth, provider);
+      }
+
+      await processGoogleResult(result, requestedRole);
+    } catch (err) {
+      console.error("Google auth error:", err);
+      let errorMsg = err.message || "Google sign-in failed. Please try again.";
+      if (err.message?.includes("10:") || err.message?.includes("Developer Error") || err.message?.includes("12500")) {
+        errorMsg = lang === "en"
+          ? "Google Sign-In configuration pending in Firebase. Please log in with your email & password."
+          : "Guhuza na Google biracyanozwa. Koresha imeli yawe n'ijambobanga.";
+      }
+      if (err.code !== "auth/popup-closed-by-user" && !err.message?.includes("cancelled")) {
+        setAuthError(errorMsg);
+      }
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
+  async function processGoogleResult(result, requestedRole = "passenger") {
+    if (!result?.user) return;
+    const loggedUser = result.user;
+
+    let profile = null;
+    try {
+      const userDoc = await getDoc(doc(db, "users", loggedUser.uid));
+      if (userDoc.exists()) {
+        profile = userDoc.data();
+      }
+    } catch (profileErr) {
+      console.warn("Could not retrieve Google profile:", profileErr);
+    }
+
+    if (!profile) {
+      profile = {
+        uid: loggedUser.uid,
+        fullName: loggedUser.displayName || loggedUser.email?.split("@")[0] || "Traveler",
+        phone: loggedUser.phoneNumber || "",
+        email: loggedUser.email,
+        nationalId: "",
+        nationalIdVerified: false,
+        nationalIdStatus: "unverified",
+        role: requestedRole,
+        active: true,
+        isDriver: requestedRole === "driver",
+        vehicle: "",
+        plate: "",
+        drivingLicense: "",
+        createdAt: serverTimestamp(),
+      };
+      try {
+        await setDoc(doc(db, "users", loggedUser.uid), profile);
+      } catch (saveErr) {
+        console.warn("Could not create initial Google user document:", saveErr);
+      }
+    }
+
+    // Google accounts always have emailVerified=true — bypass the verify screen
+    setEmailVerifiedFlag(true);
+    setUserProfile(profile);
+    const accountRole = loggedUser.email?.toLowerCase() === ADMIN_EMAIL ? "admin" : profile.role === "driver" ? "driver" : "passenger";
+    setRole(accountRole);
+    setCurrentUser(loggedUser);
+    try {
+      localStorage.setItem(STORAGE_KEY_KEEP_LOGGED_IN, "true");
+      localStorage.setItem(STORAGE_KEY_SESSION_EXPIRY, String(Date.now() + 30 * 24 * 60 * 60 * 1000));
+      localStorage.setItem(STORAGE_KEY_INTRO_DONE, "true");
+      localStorage.setItem(STORAGE_KEY_LANG, lang);
+    } catch (sessionErr) {
+      console.warn("Could not save 30-day session:", sessionErr);
+    }
+    setAuthLoading(false);
+    setAuthMode("app");
+    setCurrentTab("home");
+  }
+
+  // Step 0: Language selection (very first thing ever, only if not yet selected)
   if (!langSelected) {
     return (
       <LanguageSelect
@@ -1086,9 +1357,19 @@ export default function App() {
     );
   }
 
-  // Step 1: 4-Page Story Onboarding & Animated Splash
+  // Step 1: 4-Page Story Onboarding & Animated Splash (only on startup flow)
   if (!introFinished) {
-    return <AppIntro onFinish={() => setIntroFinished(true)} />;
+    return (
+      <AppIntro
+        lang={lang}
+        onFinish={() => {
+          try {
+            localStorage.setItem(STORAGE_KEY_INTRO_DONE, "true");
+          } catch {}
+          setIntroFinished(true);
+        }}
+      />
+    );
   }
 
   // Fallback initial auth check
@@ -1110,6 +1391,7 @@ export default function App() {
         authForm={authForm}
         setAuthForm={setAuthForm}
         handleAuthSubmit={handleAuthSubmit}
+        handleGoogleAuth={handleGoogleAuth}
         authLoading={authLoading}
         lang={lang}
         t={t}
@@ -1117,26 +1399,74 @@ export default function App() {
     );
   }
 
+  // Email verification screen: if user is authenticated but email is unverified
+  if (currentUser && !currentUser.emailVerified && !emailVerifiedFlag && currentUser.email?.toLowerCase() !== ADMIN_EMAIL) {
+    return (
+      <EmailVerificationScreen
+        currentUser={currentUser}
+        lang={lang}
+        onVerified={() => {
+          setEmailVerifiedFlag(true);
+          setAuthMode("app");
+          setCurrentTab("home");
+        }}
+      />
+    );
+  }
+
   // Admin Console View
   if (currentUser?.email?.toLowerCase() === ADMIN_EMAIL) {
     return (
-      <AdminDashboard
-        adminUsers={adminUsers}
-        adminUsersLoading={adminUsersLoading}
-        adminError={adminError}
-        adminSelectedUser={adminSelectedUser}
-        setAdminSelectedUser={setAdminSelectedUser}
-        adminUserHistory={adminUserHistory}
-        setAdminUserHistory={setAdminUserHistory}
-        adminHistoryLoading={adminHistoryLoading}
-        adminFeeBookings={adminFeeBookings}
-        adminFeedbackItems={adminFeedbackItems}
-        toggleAdminUserActive={toggleAdminUserActive}
-        openAdminUserHistory={openAdminUserHistory}
-        reviewServiceFee={reviewServiceFee}
-        closeFeedbackItem={closeFeedbackItem}
-        handleLogout={handleLogout}
-      />
+      <div className="admin-console-wrapper">
+        <AdminDashboard
+          adminUsers={adminUsers}
+          adminUsersLoading={adminUsersLoading}
+          adminError={adminError}
+          adminSelectedUser={adminSelectedUser}
+          setAdminSelectedUser={setAdminSelectedUser}
+          adminUserHistory={adminUserHistory}
+          setAdminUserHistory={setAdminUserHistory}
+          adminHistoryLoading={adminHistoryLoading}
+          adminFeeBookings={adminFeeBookings}
+          adminFeedbackItems={adminFeedbackItems}
+          adminAllBookings={adminAllBookings}
+          confirmRideBooking={confirmRideBooking}
+          declineRideBooking={declineRideBooking}
+          openTripChat={openTripChat}
+          openCall={openCall}
+          toggleAdminUserActive={toggleAdminUserActive}
+          openAdminUserHistory={openAdminUserHistory}
+          reviewServiceFee={reviewServiceFee}
+          closeFeedbackItem={closeFeedbackItem}
+          handleLogout={handleLogout}
+        />
+
+        <TripChatModal
+          chatBooking={chatBooking}
+          onClose={() => {
+            setActiveChatBooking(null);
+            setChatMessages([]);
+          }}
+          currentUser={currentUser}
+          syncOfflineBookingForChat={syncOfflineBookingForChat}
+          chatMessages={chatMessages}
+          chatDraft={chatDraft}
+          setChatDraft={setChatDraft}
+          sendChatMessage={sendChatMessage}
+          onEditMessage={editChatMessage}
+          onDeleteMessage={deleteChatMessage}
+          openCall={openCall}
+        />
+
+        <Suspense fallback={null}>
+          <CallModal
+            booking={activeCallBooking}
+            currentUser={currentUser}
+            userProfile={userProfile}
+            onClose={() => setActiveCallBooking(null)}
+          />
+        </Suspense>
+      </div>
     );
   }
 
@@ -1266,6 +1596,7 @@ export default function App() {
           <DriverDashboard
             rides={rides}
             bookings={bookings.filter((booking) => booking.driverId === currentUser?.uid)}
+            currentUser={currentUser}
             userProfile={userProfile}
             driverPostForm={driverPostForm}
             setDriverPostForm={setDriverPostForm}
@@ -1337,6 +1668,7 @@ export default function App() {
         sendChatMessage={sendChatMessage}
         onEditMessage={editChatMessage}
         onDeleteMessage={deleteChatMessage}
+        openCall={openCall}
       />
 
       <SosModal
@@ -1351,12 +1683,14 @@ export default function App() {
         lang={lang}
       />
 
-      <CallModal
-        booking={activeCallBooking}
-        currentUser={currentUser}
-        userProfile={userProfile}
-        onClose={() => setActiveCallBooking(null)}
-      />
+      <Suspense fallback={null}>
+        <CallModal
+          booking={activeCallBooking}
+          currentUser={currentUser}
+          userProfile={userProfile}
+          onClose={() => setActiveCallBooking(null)}
+        />
+      </Suspense>
     </div>
   );
 }

@@ -5,6 +5,7 @@ const SUPPORT_PHONE = "0784411121";
 export default function DriverDashboard({
   rides,
   bookings,
+  currentUser,
   userProfile,
   driverPostForm,
   setDriverPostForm,
@@ -23,7 +24,7 @@ export default function DriverDashboard({
       <div className="driver-stat-grid">
         <div className="driver-stat-card">
           <div className="stat-num">
-            {rides.filter((r) => r.driverName === userProfile?.fullName).length}
+            {rides.filter((r) => (currentUser?.uid ? r.driverId === currentUser.uid : r.driverName === userProfile?.fullName)).length}
           </div>
           <div className="stat-desc">{t.upcomingTrips}</div>
         </div>
@@ -53,7 +54,7 @@ export default function DriverDashboard({
             </svg>
             <span>{t.postFormTitle}</span>
           </div>
-          <span className="role-badge">Tugendane Driver</span>
+          <span className="role-badge">{t.driverBadge || "Tugendane Driver"}</span>
         </div>
 
         <form onSubmit={handlePublishRide}>
@@ -269,7 +270,7 @@ export default function DriverDashboard({
                     })
                   }
                 />
-                No Smoking
+                {t.prefNoSmoking || "No Smoking"}
               </label>
 
               <label
@@ -291,7 +292,7 @@ export default function DriverDashboard({
                     })
                   }
                 />
-                Women Only
+                {t.prefWomenOnly || "Women Only"}
               </label>
 
               <label
@@ -313,7 +314,7 @@ export default function DriverDashboard({
                     })
                   }
                 />
-                AC Available
+                {t.prefAC || "AC Available"}
               </label>
 
               <label
@@ -335,7 +336,7 @@ export default function DriverDashboard({
                     })
                   }
                 />
-                Quiet Trip
+                {t.prefQuietTrip || t.prefQuiet || "Quiet Trip"}
               </label>
             </div>
           </div>
@@ -362,7 +363,7 @@ export default function DriverDashboard({
               color: "var(--dark-muted)",
             }}
           >
-            <strong>Earnings:</strong> The ticket total for 3 seats at {driverPostForm.price.toLocaleString()} RWF is{" "}
+            <strong>{t.earningsLabel || "Earnings:"}</strong> The ticket total for 3 seats at {driverPostForm.price.toLocaleString()} RWF is{" "}
             {(driverPostForm.price * 3).toLocaleString()} RWF, paid to you by passengers when you meet. Passengers pay Tugendane a separate 15% booking fee after you accept.
           </div>
 
@@ -405,8 +406,17 @@ export default function DriverDashboard({
                 }}
               >
                 <div>
-                  <strong style={{ fontSize: "16px" }}>{booking.passengerName}</strong>
-                  <div style={{ fontSize: "13px", color: "var(--dark-muted)" }}>
+                  <strong style={{ fontSize: "16px" }}>
+                    {booking.status === "Confirmed"
+                      ? (booking.passengerName || "Passenger")
+                      : (lang === "en" ? "Passenger (Reserved - Hidden until Confirmed)" : "Umugenzi (Yafashe Intebe - Bitegereje Kwemezwa)")}
+                  </strong>
+                  {booking.status !== "Confirmed" && (
+                    <div style={{ fontSize: "11px", color: "var(--warning)", fontWeight: "600", marginTop: "2px" }}>
+                      🔒 {lang === "en" ? "Passenger contact is revealed once booking is confirmed by Admin" : "Umwirondoro w'umugenzi uzafungurwa urugendo rumaze kwemezwa n'ubuyobozi"}
+                    </div>
+                  )}
+                  <div style={{ fontSize: "13px", color: "var(--dark-muted)", marginTop: "2px" }}>
                     Route: {booking.from} &rarr; {booking.to} • {booking.seatsBooked} seat(s)
                   </div>
                   <div style={{ fontSize: "12.5px", color: "var(--secondary)", fontWeight: "600" }}>
@@ -439,12 +449,14 @@ export default function DriverDashboard({
                       color: booking.status === "Confirmed" ? "var(--success)" : "var(--warning)",
                     }}
                   >
-                    {booking.status}
+                    {booking.status === "Confirmed"
+                      ? (lang === "en" ? "Confirmed" : "Yemejwe")
+                      : (lang === "en" ? "Pending Approval" : "Bitegereje Kwemezwa")}
                   </span>
                 </div>
               </div>
 
-              <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
+              <div style={{ display: "flex", gap: "8px", marginTop: "10px", flexWrap: "wrap" }}>
                 {booking.status === "Pending" && (
                   <button
                     className="btn btn-sm btn-primary"
@@ -476,6 +488,30 @@ export default function DriverDashboard({
                     Call Passenger
                   </button>
                 )}
+
+                {/* In-app Chat with Admin */}
+                <button
+                  type="button"
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => openTripChat({ ...booking, isAdminChat: true, chatTarget: "admin" })}
+                  style={{ fontSize: "12px" }}
+                >
+                  💬 {lang === "en" ? "Chat Admin" : "Vugana n'Ubuyobozi"}
+                </button>
+
+                {/* In-app VoIP Call to Admin */}
+                <button
+                  type="button"
+                  className="btn btn-sm btn-call"
+                  onClick={() => openCall(booking)}
+                  style={{ fontSize: "12px" }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style={{ display: "inline-block", verticalAlign: "-1px", marginRight: "4px" }}>
+                    <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
+                  </svg>
+                  {lang === "en" ? "Call Admin in App" : "Hamagara Ubuyobozi"}
+                </button>
+
                 <a
                   href={`tel:${SUPPORT_PHONE}`}
                   className="btn btn-sm btn-secondary"
@@ -484,7 +520,7 @@ export default function DriverDashboard({
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style={{ display: "inline-block", verticalAlign: "-1px", marginRight: "4px" }}>
                     <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
                   </svg>
-                  Call Support
+                  {lang === "en" ? "Support Hotline" : "Hotline y'Ubuyobozi"}
                 </a>
               </div>
             </div>

@@ -179,9 +179,11 @@ export async function getAvailableRides() {
     const snapshot = await getDocs(ridesQuery);
     if (!snapshot.empty) {
       const firestoreRides = snapshot.docs.map(mapRideDoc);
-      // Merge unique by ID
-      saveLocalRides(firestoreRides);
-      return firestoreRides;
+      const firestoreIds = new Set(firestoreRides.map((r) => r.id || r.firestoreId));
+      const localOnlyRides = localRides.filter((r) => r && !firestoreIds.has(r.id || r.firestoreId));
+      const merged = [...firestoreRides, ...localOnlyRides];
+      saveLocalRides(merged);
+      return merged;
     }
   } catch (err) {
     console.log("Using cached/local rides:", err?.message);

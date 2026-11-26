@@ -4,13 +4,13 @@ import { getFirestore } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAB9-GyUzTI3rH4N4HKeUfnTj-VwGKxzCs",
-  authDomain: "tugendane-rwanda.firebaseapp.com",
-  projectId: "tugendane-rwanda",
-  storageBucket: "tugendane-rwanda.firebasestorage.app",
-  messagingSenderId: "166007770565",
-  appId: "1:166007770565:web:e9812ecb7cd2b55df0cfac",
-  measurementId: "G-LD0Q4DC2TS"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 const app = initializeApp(firebaseConfig);

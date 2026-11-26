@@ -1,16 +1,6 @@
-import { RWANDA_CITIES, POPULAR_ROUTES } from "../services/rwandaRoutes";
+import { RWANDA_CITIES, POPULAR_ROUTES, isRideUpcoming } from "../services/rwandaRoutes";
 import RideCard from "../components/RideCard";
 import RwandaRouteMap from "../components/RwandaRouteMap";
-
-function isUpcoming(departureDate, departureTime = "23:59") {
-  if (!departureDate) return true;
-  try {
-    const dt = new Date(`${departureDate}T${departureTime || "00:00"}`);
-    return Number.isNaN(dt.getTime()) ? true : dt.getTime() >= Date.now();
-  } catch {
-    return true;
-  }
-}
 
 export default function PassengerHome({
   fromCity,
@@ -47,7 +37,7 @@ export default function PassengerHome({
             <span>{t.whereGoing}</span>
           </div>
           <div style={{ fontSize: "13px", color: "var(--dark-muted)" }}>
-            {rides.filter((r) => r.status === "active" && isUpcoming(r.departureDate, r.departureTime)).length}{" "}
+            {rides.filter((r) => r.status === "active" && isRideUpcoming(r.departureDate, r.departureTime)).length}{" "}
             {lang === "en" ? "available rides across Rwanda" : "ingendo ziboneka mu Rwanda"}
           </div>
         </div>

@@ -365,7 +365,30 @@ export default function TripsView({
                   </button>
                 )}
 
-                {/* Call Support fallback */}
+                {/* In-app Chat with Admin */}
+                <button
+                  type="button"
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => openTripChat({ ...booking, isAdminChat: true, chatTarget: "admin" })}
+                  style={{ fontSize: "12px" }}
+                >
+                  💬 {lang === "en" ? "Chat Admin" : "Vugana n'Ubuyobozi"}
+                </button>
+
+                {/* In-app VoIP Call to Admin */}
+                <button
+                  type="button"
+                  className="btn btn-sm btn-call"
+                  onClick={() => openCall(booking)}
+                  style={{ fontSize: "12px" }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style={{ display: "inline-block", verticalAlign: "-1px", marginRight: "4px" }}>
+                    <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
+                  </svg>
+                  {lang === "en" ? "Call Admin in App" : "Hamagara Ubuyobozi"}
+                </button>
+
+                {/* Call Support hotline fallback */}
                 <a
                   href={`tel:${SUPPORT_PHONE}`}
                   className="btn btn-sm btn-secondary"
@@ -374,7 +397,7 @@ export default function TripsView({
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style={{ display: "inline-block", verticalAlign: "-1px", marginRight: "4px" }}>
                     <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
                   </svg>
-                  Call Support
+                  {lang === "en" ? "Support Hotline" : "Hotline y'Ubuyobozi"}
                 </a>
 
                 {/* Share trip details */}
